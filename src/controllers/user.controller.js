@@ -1,9 +1,8 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcryptjs");
+import bcrypt from "bcrypt";
+import prisma from "../config/database.js";
 
-const prisma = new PrismaClient();
 
-const getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       include: { profiles: true },
@@ -15,7 +14,7 @@ const getUsers = async (req, res) => {
   }
 };
 
-const createUser = async (req, res) => {
+export const createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -39,4 +38,4 @@ const createUser = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, createUser };
+

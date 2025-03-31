@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+import prisma from "../config/database.js";
 
-const checkProductoraAccess = async (req, res, next) => {
+export const checkProductoraAccess = async (req, res, next) => {
   const userId = req.user.id; // Tomado del token JWT
   const { productoraId } = req.params;
 
@@ -16,4 +15,3 @@ const checkProductoraAccess = async (req, res, next) => {
   next();
 };
 
-module.exports = { checkProductoraAccess };

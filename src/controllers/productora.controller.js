@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+import prisma from "../config/database.js";
 
-const getAllProductoras = async (req, res) => {
+export const getAllProductoras = async (req, res) => {
   try {
     const productoras = await prisma.productora.findMany({
       include: { profiles: { include: { user: true } } }
@@ -12,7 +11,7 @@ const getAllProductoras = async (req, res) => {
   }
 };
 
-const getProductoraByCode = async (req, res) => {
+export const getProductoraByCode = async (req, res) => {
   try {
     const { code } = req.params;
     const productora = await prisma.productora.findUnique({
@@ -30,7 +29,7 @@ const getProductoraByCode = async (req, res) => {
   }
 };
 
-const createProductora = async (req, res) => {
+export const createProductora = async (req, res) => {
   try {
     const { name, code, userId } = req.body;
 
@@ -56,7 +55,7 @@ const createProductora = async (req, res) => {
 };
 
 
-const updateProductora = async (req, res) => {
+export const updateProductora = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, status } = req.body;
@@ -72,7 +71,7 @@ const updateProductora = async (req, res) => {
   }
 };
 
-const deleteProductora = async (req, res) => {
+export const deleteProductora = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -86,12 +85,4 @@ const deleteProductora = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Error al eliminar la productora" });
   }
-};
-
-module.exports = {
-  getAllProductoras,
-  getProductoraByCode,
-  createProductora,
-  updateProductora,
-  deleteProductora,
 };

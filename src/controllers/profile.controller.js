@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+import prisma from "../config/database.js";
 
-const getProfiles = async (req, res) => {
+export const getProfiles = async (req, res) => {
   try {
     const profiles = await prisma.profile.findMany({
       include: { user: true, productora: true },
@@ -12,7 +11,7 @@ const getProfiles = async (req, res) => {
   }
 };
 
-const createProfile = async (req, res) => {
+export const createProfile = async (req, res) => {
   try {
     const { role, userId, productoraId } = req.body;
     const profile = await prisma.profile.create({
@@ -24,4 +23,3 @@ const createProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfiles, createProfile };
