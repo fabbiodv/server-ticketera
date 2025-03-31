@@ -50,9 +50,11 @@ const createProductora = async (req, res) => {
 
     res.status(201).json(productora);
   } catch (error) {
-    res.status(500).json({ error: "Error al crear la productora" });
+    console.error(error); // Mostrar el error completo en la consola del servidor
+    res.status(500).json({ error: "Error al crear la productora", details: error.message });
   }
 };
+
 
 const updateProductora = async (req, res) => {
   try {

@@ -1,4 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+
 const prisma = new PrismaClient();
 
 const getUsers = async (req, res) => {
@@ -8,6 +10,7 @@ const getUsers = async (req, res) => {
     });
     res.json(users);
   } catch (error) {
+    console.error("Error al obtener usuarios:", error);
     res.status(500).json({ error: "Error al obtener usuarios" });
   }
 };
@@ -15,11 +18,23 @@ const getUsers = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    // Verificar si el usuario ya existe
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: "El correo ya está registrado" });
+    }
+
+    // Hashear la contraseña antes de guardarla
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
-      data: { name, email, password },
+      data: { name, email, password: hashedPassword },
     });
-    res.json(user);
+
+    res.status(201).json(user);
   } catch (error) {
+    console.error("Error al crear usuario:", error);
     res.status(500).json({ error: "Error al crear usuario" });
   }
 };
