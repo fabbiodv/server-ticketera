@@ -14,21 +14,30 @@ generator client {
 
 enum Role {
   OWNER   // Creador de la productora (líder)
-  ADMIN   // Administrador (publica)
+  ADMIN   // Administrador (publica) ignorar 
   MANAGER // Organizador
   RRPP    // Relaciones públicas
 }
-
+/*
+TO-DO:
+- Crear enum publica, subpublica y lider  -> para vendedor
+- Crear un modelo de eventos
+- Crear relacion entre eventos y productoras
+- Crear relacion entre eventos y usuarios
+- Armar los endpoints para los eventos en el postman
+- Agregar api a los endpoints api/.....
+*/
 model Productora {
   id               Int       @id @default(autoincrement())
   name             String
+  email            String    @unique
   code             String    @unique
   profiles         Profile[]
   totalEvents      Int       @default(0)
   activeEvents     Int       @default(0)
   totalOrganizers  Int       @default(0)
   totalRevenue     Float     @default(0)
-  status           String
+  status String? @default("active")
 }
 
 model User {

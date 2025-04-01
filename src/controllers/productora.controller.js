@@ -31,12 +31,17 @@ export const getProductoraByCode = async (req, res) => {
 
 export const createProductora = async (req, res) => {
   try {
-    const { name, code, userId } = req.body;
+    const { name, code, userId, email } = req.body;
+    console.log(req.body);
+    if (!name || !code || !userId || !email) {
+      return res.status(400).json({ error: "Todos los campos son obligatorios: name, code, userId, status" });
+    }
 
     const productora = await prisma.productora.create({
       data: {
         name,
         code,
+        email,
         profiles: {
           create: {
             userId,
@@ -49,11 +54,10 @@ export const createProductora = async (req, res) => {
 
     res.status(201).json(productora);
   } catch (error) {
-    console.error(error); // Mostrar el error completo en la consola del servidor
+    console.error(error);
     res.status(500).json({ error: "Error al crear la productora", details: error.message });
   }
 };
-
 
 export const updateProductora = async (req, res) => {
   try {
