@@ -4,28 +4,22 @@ import prisma from "./config/database.js";
 import productoraRoutes from "./routes/productora.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
-// Inicializar la aplicación Express
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3000;
 
-// Middleware para permitir solicitudes CORS
 app.use(cors());
 
-// Middleware para parsear cuerpos JSON
 app.use(express.json());
 
-// Importar rutas de usuarios
 app.use("/users", userRoutes);
 
 app.use("/productoras", productoraRoutes);
 
-// Middleware para manejar errores de Prisma y otras posibles excepciones
 app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ message: "Algo salió mal en el servidor." });
 });
 
-// Iniciar el servidor
 app.listen(port, async () => {
   try {
     await prisma.$connect()
