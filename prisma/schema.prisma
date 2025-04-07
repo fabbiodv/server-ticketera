@@ -27,6 +27,28 @@ TO-DO:
 - Armar los endpoints para los eventos en el postman
 - Agregar api a los endpoints api/.....
 */
+
+model Eventos {
+  id          Int       @id @default(autoincrement())
+  name        String
+  date        DateTime
+  location    String
+  productoraId Int
+
+
+  usuarios User[] 
+  productora Productora @relation(fields: [productoraId], references: [id])
+  Entrada Entrada[]
+}
+model Entrada {
+  id          Int       @id @default(autoincrement())
+  tipo        String    
+  precio      Float     
+  eventoId    Int      
+
+  evento     Eventos   @relation(fields: [eventoId], references: [id])
+}
+
 model Productora {
   id               Int       @id @default(autoincrement())
   name             String
@@ -38,6 +60,8 @@ model Productora {
   totalOrganizers  Int       @default(0)
   totalRevenue     Float     @default(0)
   status String? @default("active")
+
+  Eventos Eventos[]
 }
 
 model User {
@@ -46,6 +70,7 @@ model User {
   email    String    @unique
   password String
   profiles Profile[]
+  Eventos Eventos[]
 }
 
 model Profile {
