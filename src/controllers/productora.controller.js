@@ -16,7 +16,7 @@ export const getProductoraByCode = async (req, res) => {
     const { code } = req.params;
     const productora = await prisma.productora.findUnique({
       where: { code },
-      include: { profiles: { include: { user: true } } }
+      include: { profiles: { include: { user: true , eventos: true} } }
     });
 
     if (!productora) {
@@ -34,7 +34,7 @@ export const createProductora = async (req, res) => {
     const { name, code, userId, email } = req.body;
     console.log(req.body);
     if (!name || !code || !userId || !email) {
-      return res.status(400).json({ error: "Todos los campos son obligatorios: name, code, userId, status" });
+      return res.status(400).json({ error: "Todos los campos son obligatorios: name, code, userId, status,email" });
     }
 
     const productora = await prisma.productora.create({

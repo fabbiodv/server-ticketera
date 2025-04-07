@@ -27,7 +27,10 @@ TO-DO:
 - Armar los endpoints para los eventos en el postman
 - Agregar api a los endpoints api/.....
 */
-
+enum estadoProductora {
+  activa
+  inactiva
+}
 model Eventos {
   id          Int       @id @default(autoincrement())
   name        String
@@ -64,7 +67,7 @@ model Productora {
   activeEvents     Int       @default(0)
   totalOrganizers  Int       @default(0)
   totalRevenue     Float     @default(0)
-  status String? @default("active")
+  status estadoProductora? @default(activa)
 
   Eventos Eventos[]
 }

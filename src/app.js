@@ -17,7 +17,7 @@ app.use("/productoras", productoraRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ message: "Algo salió mal en el servidor." });
+  res.status(500).json({ message: "Algo salió mal en el servidor."+err.message });
 });
 
 app.listen(port, async () => {
