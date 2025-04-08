@@ -38,7 +38,16 @@ export const getProductoraByCode = async (req, res) => {
     res.status(500).json({ error: "Error al buscar la productora: " + error.message });
   }
 };
-import { randomCode } from "../utils/randomCode.js";
+
+function randomCode(length) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters[randomIndex];
+  }
+  return result;
+}
 
 export const createProductora = async (req, res) => {
   try {
