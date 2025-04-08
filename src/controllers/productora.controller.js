@@ -1,3 +1,4 @@
+import { response } from "express";
 import prisma from "../config/database.js";
 
 export const getAllProductoras = async (req, res) => {
@@ -7,16 +8,25 @@ export const getAllProductoras = async (req, res) => {
     });
     res.json(productoras);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener productoras" });
+    res.status(500).json({ error: "Error al obtener productoras"+error.message
+     });
   }
 };
 
 export const getProductoraByCode = async (req, res) => {
   try {
     const { code } = req.params;
+    console.log("Código recibido:", code);
     const productora = await prisma.productora.findUnique({
-      where: { code },
-      include: { profiles: { include: { user: true , eventos: true} } }
+      where: { code: code },
+      include: {
+        profiles: {
+          select: {
+            user: true, // Selecciona únicamente el campo 'user'
+          },
+        },
+        eventos: true, // Incluye los eventos relacionados
+      },
     });
 
     if (!productora) {
@@ -25,10 +35,9 @@ export const getProductoraByCode = async (req, res) => {
 
     res.json(productora);
   } catch (error) {
-    res.status(500).json({ error: "Error al buscar la productora" });
+    res.status(500).json({ error: "Error al buscar la productora: " + error.message });
   }
 };
-
 export const createProductora = async (req, res) => {
   try {
     const { name, code, userId, email } = req.body;

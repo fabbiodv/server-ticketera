@@ -13,17 +13,24 @@ generator client {
 }
 
 enum Role {
+  SUPERADMIN // Super administrador (admin)
   OWNER   // Creador de la productora (líder)
-  ADMIN   // Administrador (publica) ignorar 
-  MANAGER // Organizador
-  RRPP    // Relaciones públicas
+  ORGANIZADOR   // Administrador (publica) ignorar 
+  LIDER // Organizador
+  SUBPUBLICA 
+  PUBLICA   // Relaciones públicas
+}
+enum estadoTipoEntrada {
+  DISPONIBLE
+  AGOTADA
+  LIMITADA
 }
 /*
 TO-DO:
 - Crear enum publica, subpublica y lider  -> para vendedor
 - Crear un modelo de eventos
-- Crear relacion entre eventos y productoras
-- Crear relacion entre eventos y usuarios
+- Crear relacion entre eventos y productoras ->listo
+- Crear relacion entre eventos y usuarios -> se hace tipo entrada y las entradas se vinculan al publica/sub/lider
 - Armar los endpoints para los eventos en el postman
 - Agregar api a los endpoints api/.....
 */
@@ -35,7 +42,11 @@ model Eventos {
   id          Int       @id @default(autoincrement())
   name        String
   date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  description String
   location    String
+  capacity   Int
   productoraId Int
 
   usuarios User[] 
@@ -49,11 +60,15 @@ model Entrada {
   tipoEntrada  TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
 }
 
+
 model TipoEntrada {
   id          Int       @id @default(autoincrement())
   nombre      String
   precio      Float
   eventoId    Int
+  maximoEntradasPorPersona Int
+  estado      estadoTipoEntrada @default(DISPONIBLE)
+  disponible  Boolean @default(true)
   evento     Eventos   @relation(fields: [eventoId], references: [id])
   entradas   Entrada[]
 }
