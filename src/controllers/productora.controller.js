@@ -38,22 +38,24 @@ export const getProductoraByCode = async (req, res) => {
     res.status(500).json({ error: "Error al buscar la productora: " + error.message });
   }
 };
+import { randomCode } from "../utils/randomCode.js";
+
 export const createProductora = async (req, res) => {
   try {
-    const { name, code, userId, email } = req.body;
+    const { name, email } = req.body;
     console.log(req.body);
-    if (!name || !code || !userId || !email) {
+    if (!name || !code  || !email) {
       return res.status(400).json({ error: "Todos los campos son obligatorios: name, code, userId, status,email" });
     }
 
     const productora = await prisma.productora.create({
       data: {
         name,
-        code,
+        code:randomCode(5),
         email,
         profiles: {
           create: {
-            userId,
+            userId: 1,
             role: "OWNER"
           }
         }
