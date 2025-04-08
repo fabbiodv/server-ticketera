@@ -53,14 +53,14 @@ export const createProductora = async (req, res) => {
   try {
     const { name, email } = req.body;
     console.log(req.body);
-    if (!name || !code  || !email) {
+    if (!name || !email) {
       return res.status(400).json({ error: "Todos los campos son obligatorios: name,email" });
     }
 
     const productora = await prisma.productora.create({
       data: {
         name,
-        code:randomCode(5),
+        code: randomCode(6),
         email,
         profiles: {
           create: {
