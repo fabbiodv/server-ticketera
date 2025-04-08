@@ -3,15 +3,12 @@ import prisma from "../config/database.js";
 export const createTipoEntrada = async (req, res) => {
   try {
     const { nombre, precio, eventoId, maximoEntradasPorPersona } = req.body;
-
-    // Validación de campos requeridos
     if (!nombre || !precio || !eventoId || !maximoEntradasPorPersona) {
       return res.status(400).json({
         error: "Todos los campos son obligatorios: nombre, precio, eventoId, maximoEntradasPorPersona"
       });
     }
 
-    // Verificar que el evento existe
     const eventoExiste = await prisma.eventos.findUnique({
       where: { id: Number(eventoId) }
     });
@@ -22,7 +19,6 @@ export const createTipoEntrada = async (req, res) => {
       });
     }
 
-    // Crear el tipo de entrada
     const tipoEntrada = await prisma.tipoEntrada.create({
       data: {
         nombre,
@@ -72,7 +68,6 @@ export const updateTipoEntrada = async (req, res) => {
         });
         }
     
-        // Actualizar el tipo de entrada
         const updatedTipoEntrada = await prisma.tipoEntrada.update({
         where: { id: Number(id) },
         data: {
@@ -100,7 +95,6 @@ export const deleteTipoEntrada = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar que el tipo de entrada existe
     const tipoEntrada = await prisma.tipoEntrada.findUnique({
       where: { id: Number(id) }
     });
@@ -111,7 +105,6 @@ export const deleteTipoEntrada = async (req, res) => {
       });
     }
 
-    // Eliminar el tipo de entrada
     await prisma.tipoEntrada.delete({
       where: { id: Number(id) }
     });
