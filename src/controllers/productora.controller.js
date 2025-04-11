@@ -1,12 +1,15 @@
 import { response } from "express";
 import prisma from "../config/database.js";
+import ProductoraResource from '../utils/ProductoraResource.js';
 
 export const getAllProductoras = async (req, res) => {
   try {
     const productoras = await prisma.productora.findMany({
       include: { profiles: { include: { user: true } } }
     });
-    res.json(productoras);
+    const data = productoras.map(ProductoraResource);
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener productoras"+error.message
      });
@@ -29,11 +32,18 @@ export const getProductoraByCode = async (req, res) => {
       },
     });
 
+
     if (!productora) {
       return res.status(404).json({ error: "Productora no encontrada" });
     }
 
-    res.json(productora);
+    const data = ProductoraResource(productora);
+    const organizadores = productora.profiles
+    .filter(p => p.role === 'ORGANIZER')
+    .map(p => p.user);
+    data.totalOrganizers = organizadores.length;    
+    
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Error al buscar la productora: " + error.message });
   }
