@@ -20,45 +20,47 @@ export const getProductoraByCode = async (req, res) => {
   try {
     const { code } = req.params;
     console.log("Código recibido:", code);
-    const productora = await prisma.productora.findUnique({
-      where: { code: code },
-      include: {
-        profiles: {
-          select: {
-            user: true, 
-            role: true,
 
-          },
-        },
-        eventos: true,
+    const productora = await prisma.productora.findUnique({
+      where: { code: String(code) },
+      include: {
+        profiles: { select: { user: true, role: true } },
+        eventos: true, 
       },
     });
-
 
     if (!productora) {
       return res.status(404).json({ error: "Productora no encontrada" });
     }
 
     const data = ProductoraResource(productora);
-    const organizadores = productora.profiles
-    .filter(p => p.role === 'ORGANIZER')
-    .map(p => p.user);
+    data.eventos = productora.eventos;
+    data.totalEvents = productora.eventos.length;
+    data.activeEvents = productora.eventos.filter(e => e.estado === 'ACTIVO').length;
 
-  data.totalOrganizers = organizadores.length;
-  data.organizadores = organizadores.map(user => ({
-    id: `O-${user.id.toString().padStart(4, "0")}`,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    role: "Organizador",
-    initials: user.name.split(" ").map(n => n[0]).join(""),
-    status: "Activo",
-  }));
+    const organizadores = productora.profiles
+      .filter(p => p.role === 'ORGANIZER')
+      .map(p => p.user);
+
+    data.totalOrganizers = organizadores.length;
+    data.organizadores = organizadores.map(user => ({
+      id: `O-${user.id.toString().padStart(4, "0")}`,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: "Organizador",
+      initials: user.name.split(" ").map(n => n[0]).join(""),
+      status: "Activo",
+    }));
+
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Error al buscar la productora: " + error.message });
+    res
+      .status(500)
+      .json({ error: "Error al buscar la productora: " + error.message });
   }
 };
+
 
 function randomCode(length) {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

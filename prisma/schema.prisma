@@ -84,8 +84,7 @@ model Productora {
   totalOrganizers  Int       @default(0)
   totalRevenue     Float     @default(0)
   status estadoProductora? @default(activa)
-
-  Eventos Eventos[]
+  eventos Eventos[]
 }
 
 model User {
