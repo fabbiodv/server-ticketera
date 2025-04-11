@@ -25,10 +25,12 @@ export const getProductoraByCode = async (req, res) => {
       include: {
         profiles: {
           select: {
-            user: true, // Selecciona únicamente el campo 'user'
+            user: true, 
+            role: true,
+
           },
         },
-        eventos: true, // Incluye los eventos relacionados
+        eventos: true,
       },
     });
 
@@ -41,8 +43,17 @@ export const getProductoraByCode = async (req, res) => {
     const organizadores = productora.profiles
     .filter(p => p.role === 'ORGANIZER')
     .map(p => p.user);
-    data.totalOrganizers = organizadores.length;    
-    
+
+  data.totalOrganizers = organizadores.length;
+  data.organizadores = organizadores.map(user => ({
+    id: `O-${user.id.toString().padStart(4, "0")}`,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: "Organizador",
+    initials: user.name.split(" ").map(n => n[0]).join(""),
+    status: "Activo",
+  }));
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Error al buscar la productora: " + error.message });
