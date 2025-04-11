@@ -4,7 +4,7 @@ import { createEntrada } from "./entrada.controller.js";
 export const createTipoEntrada = async (req, res) => {
   try {
     const prisma = new PrismaClient();
-    const { nombre, precio, eventoId, maximoEntradasPorPersona } = req.body;
+    const { nombre, precio, eventoId,totalEntradas ,maximoEntradasPorPersona } = req.body;
     if (!nombre || !precio || !eventoId || !maximoEntradasPorPersona) {
       return res.status(400).json({
         error: "Todos los campos son obligatorios: nombre, precio, eventoId, maximoEntradasPorPersona"
@@ -26,6 +26,7 @@ export const createTipoEntrada = async (req, res) => {
         nombre,
         precio: Number(precio),
         eventoId: Number(eventoId),
+        totalEntradas: Number(totalEntradas),
         maximoEntradasPorPersona: Number(maximoEntradasPorPersona),
         
       },

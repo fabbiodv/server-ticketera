@@ -1,10 +1,10 @@
 import { PrismaClient } from "@prisma/client/extension";
+import prisma from "../config/database.js";
 
 
 export const getAllEventos = async(req, res ) => {
     try{
-        const prisma = new PrismaClient();
-        const eventos = await prisma.evento.findMany({
+        const eventos = await prisma.eventos.findMany({
             include: {
                 productora: true,
                 
@@ -42,12 +42,12 @@ export const getEventoById = async(req, res) => {
 }
 export const createEvento = async (req, res) => {
     try {
-      const { name,date,startTime,endTime,description,location,productoraId} = req.body;
+      const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada} = req.body;
   
       // Validación de campos requeridos
-      if (!name || !date || !startTime || !endTime || !location || !productoraId) {
+      if (!name || !date || !startTime || !endTime || !location || !productoraId  || !capacity ) {
         return res.status(400).json({
-          error: "Todos los campos son obligatorios: name, date, startTime, endTime, description, location, productoraId"
+          error: "Todos los campos son obligatorios: name, date, startTime, endTime, description, location, capacity, productoraId"
         });
       }
   
@@ -59,16 +59,18 @@ export const createEvento = async (req, res) => {
           endTime: new Date(endTime),
           description,
           location,
+          capacity: Number(capacity),
           productoraId: Number(productoraId),
-          ...(tiposEntrada && {
+          ...(Array.isArray(tiposEntrada) && tiposEntrada.length > 0 && {
             tipoEntrada: {
               create: tiposEntrada.map(tipo => ({
                 nombre: tipo.nombre,
                 precio: tipo.precio,
+                totalEntradas: tipo.totalEntradas,
                 maximoEntradasPorPersona: tipo.maximoEntradasPorPersona
               }))
             }
-          })
+          })          
         },
         include: {
           productora: true,
