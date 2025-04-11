@@ -1,7 +1,9 @@
 import prisma from "../config/database.js";
-
+import { PrismaClient } from "@prisma/client";
+import { createEntrada } from "./entrada.controller.js";
 export const createTipoEntrada = async (req, res) => {
   try {
+    const prisma = new PrismaClient();
     const { nombre, precio, eventoId, maximoEntradasPorPersona } = req.body;
     if (!nombre || !precio || !eventoId || !maximoEntradasPorPersona) {
       return res.status(400).json({
@@ -24,7 +26,8 @@ export const createTipoEntrada = async (req, res) => {
         nombre,
         precio: Number(precio),
         eventoId: Number(eventoId),
-        maximoEntradasPorPersona: Number(maximoEntradasPorPersona)
+        maximoEntradasPorPersona: Number(maximoEntradasPorPersona),
+        
       },
       include: {
         evento: true
