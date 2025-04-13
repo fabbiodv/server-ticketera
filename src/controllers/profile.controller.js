@@ -3,7 +3,7 @@ import { crearPerfilesConJerarquia } from "../utils/profileService.js";
 export const getProfiles = async (req, res) => {
   try {
     const profiles = await prisma.profile.findMany({
-      include: { user: true, productora: true },
+      include: { user: true, productora: true, roles: true },
     });
     res.json(profiles);
   } catch (error) {

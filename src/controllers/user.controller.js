@@ -5,7 +5,7 @@ import prisma from "../config/database.js";
 export const getUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      include: { profiles: true },
+      include: { profiles: {include: {roles :true}} },
     });
     res.json(users);
   } catch (error) {
