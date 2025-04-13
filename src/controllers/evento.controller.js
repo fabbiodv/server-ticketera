@@ -40,6 +40,27 @@ export const getEventoById = async(req, res) => {
         res.status(500).json({ error: "Error al obtener evento" });
     }
 }
+
+export const getEventosByProductora = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const eventos = await prisma.eventos.findMany({
+            where: { productoraId: Number(id) },
+            include: {
+                productora: true,
+                tipoEntrada: true
+            }
+        });
+        if (!eventos || eventos.length === 0) {
+            return res.status(404).json({ message: "No se encontraron eventos para esta productora" });
+        }
+        res.status(200).json(eventos);
+    } catch (error) {
+        // console.error("Error al obtener eventos por productora:", error);
+        res.status(500).json({ error: "Error al obtener eventos por productora", details: error.message });
+    }
+}
+
 export const createEvento = async (req, res) => {
     try {
       const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada} = req.body;
