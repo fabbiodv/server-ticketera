@@ -28,7 +28,7 @@ export const createTipoEntrada = async (req, res) => {
         eventoId: Number(eventoId),
         totalEntradas: Number(totalEntradas),
         maximoEntradasPorPersona: Number(maximoEntradasPorPersona),
-        
+        //por default campo estado: DISPONIBLE y campo disponible : true
       },
       include: {
         evento: true
