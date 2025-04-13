@@ -1,5 +1,6 @@
 import { response } from "express";
 import prisma from "../config/database.js";
+import getProximoCodigo from "../utils/getProximoCode.js";
 import ProductoraResource from '../utils/ProductoraResource.js';
 
 export const getAllProductoras = async (req, res) => {
@@ -62,18 +63,10 @@ export const getProductoraByCode = async (req, res) => {
 };
 
 
-function randomCode(length) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    result += characters[randomIndex];
-  }
-  return result;
-}
-
 export const createProductora = async (req, res) => {
   try {
+    const nuevoCodigo = await getProximoCodigo("productora"); 
+
     const { name, email } = req.body;
     console.log(req.body);
     if (!name || !email) {
@@ -83,7 +76,7 @@ export const createProductora = async (req, res) => {
     const productora = await prisma.productora.create({
       data: {
         name,
-        code: randomCode(6),
+        code: nuevoCodigo,
         email,
         profiles: {
           create: {
