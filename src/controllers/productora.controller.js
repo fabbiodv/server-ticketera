@@ -6,16 +6,26 @@ import ProductoraResource from '../utils/ProductoraResource.js';
 export const getAllProductoras = async (req, res) => {
   try {
     const productoras = await prisma.productora.findMany({
-      include: { profiles: { include: { user: true } } }
+      include: { 
+        profiles: { 
+          include: { 
+            user: true,
+            roles: true
+          } 
+        } 
+      }
     });
+    
     const data = productoras.map(ProductoraResource);
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener productoras"+error.message
-     });
+    res.status(500).json({ 
+      error: "Error al obtener productoras: " + error.message 
+    });
   }
 };
+
 
 export const getProductoraByCode = async (req, res) => {
   try {
@@ -25,7 +35,12 @@ export const getProductoraByCode = async (req, res) => {
     const productora = await prisma.productora.findUnique({
       where: { code: String(code) },
       include: {
-        profiles: { select: { user: true, role: true } },
+        profiles: { 
+          include: { 
+            user: true, 
+            roles: true 
+          } 
+        },
         eventos: true, 
       },
     });
@@ -39,8 +54,9 @@ export const getProductoraByCode = async (req, res) => {
     data.totalEvents = productora.eventos.length;
     data.activeEvents = productora.eventos.filter(e => e.estado === 'ACTIVO').length;
 
+    // Buscamos perfiles que tengan asignado el rol 'ORGANIZER' en roleAsignees
     const organizadores = productora.profiles
-      .filter(p => p.role === 'ORGANIZER')
+      .filter(p => p.roles.some(ra => ra.role === 'ORGANIZER'))
       .map(p => p.user);
 
     data.totalOrganizers = organizadores.length;
@@ -65,35 +81,47 @@ export const getProductoraByCode = async (req, res) => {
 
 export const createProductora = async (req, res) => {
   try {
-    const nuevoCodigo = await getProximoCodigo("productora"); 
-
+    const nuevoCodigo = await getProximoCodigo("productora");
     const { name, email } = req.body;
-    console.log(req.body);
+
     if (!name || !email) {
-      return res.status(400).json({ error: "Todos los campos son obligatorios: name,email" });
+      return res.status(400).json({ error: "Todos los campos son obligatorios: name, email" });
     }
 
-    const productora = await prisma.productora.create({
-      data: {
-        name,
-        code: nuevoCodigo,
-        email,
-        profiles: {
-          create: {
-            userId: 1,
-            role: "OWNER"
-          }
+    const [productora, profile, roleAsignado] = await prisma.$transaction(async (tx) => {
+      const newProductora = await tx.productora.create({
+        data: {
+          name,
+          code: nuevoCodigo,
+          email
         }
-      },
-      include: { profiles: true }
+      });
+
+      const newProfile = await tx.profile.create({
+        data: {
+          userId: 1,
+          productoraId: newProductora.id
+        }
+      });
+
+      const newRoleAsignado = await tx.roleAsignee.create({
+        data: {
+          profileId: newProfile.id,
+          role: "OWNER"
+        }
+      });
+
+      return [newProductora, newProfile, newRoleAsignado];
     });
 
-    res.status(201).json(productora);
+    res.status(201).json({ productora, profile, roleAsignado });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al crear la productora", details: error.message });
   }
 };
+
 
 export const updateProductora = async (req, res) => {
   try {

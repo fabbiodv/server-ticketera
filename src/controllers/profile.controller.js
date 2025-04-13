@@ -12,13 +12,19 @@ export const getProfiles = async (req, res) => {
 };
 
 export const createProfile = async (req, res) => {
+  const { userId, productoraId } = req.body;
+
   try {
-    const { role, userId, productoraId } = req.body;
-    const profile = await prisma.profile.create({
-      data: { role, userId, productoraId },
+    const newProfile = await prisma.profile.create({
+      data: {
+        userId,
+        productoraId,
+  
+      },
     });
-    res.json(profile);
+    res.status(201).json(newProfile);
   } catch (error) {
+    console.error("Error al crear perfil:", error);
     res.status(500).json({ error: "Error al crear perfil" });
   }
 };

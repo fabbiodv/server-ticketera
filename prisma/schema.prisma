@@ -96,14 +96,22 @@ model User {
   Eventos Eventos[]
 }
 
+
 model Profile {
-  id          Int        @id @default(autoincrement())
-  userId      Int
+  id           Int        @id @default(autoincrement())
+  userId       Int
   productoraId Int
-  role        Role
 
-  user        User       @relation(fields: [userId], references: [id])
-  productora  Productora @relation(fields: [productoraId], references: [id])
-  @@unique([userId, productoraId, role]) // Esto evita duplicados.
+  user         User       @relation(fields: [userId], references: [id])
+  productora   Productora @relation(fields: [productoraId], references: [id])
+  roles        RoleAsignee[]
+}
 
+model RoleAsignee {
+  profileId Int
+  role      Role
+
+  profile   Profile @relation(fields: [profileId], references: [id])
+
+  @@id([profileId, role])  // Clave compuesta
 }
