@@ -56,7 +56,7 @@ export const getProductoraByCode = async (req, res) => {
 
     // Buscamos perfiles que tengan asignado el rol 'ORGANIZER' en roleAsignees
     const organizadores = productora.profiles
-      .filter(p => p.roles.some(ra => ra.role === 'ORGANIZER'))
+      .filter(p => p.roles.some(ra => ra.role === 'ORGANIZADOR'))
       .map(p => p.user);
 
     data.totalOrganizers = organizadores.length;
