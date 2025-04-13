@@ -1,5 +1,5 @@
 import prisma from "../config/database.js";
-
+import { crearPerfilesConJerarquia } from "../utils/profileService.js";
 export const getProfiles = async (req, res) => {
   try {
     const profiles = await prisma.profile.findMany({
@@ -23,3 +23,14 @@ export const createProfile = async (req, res) => {
   }
 };
 
+export const asignarPerfil = async (req, res) => {
+  const { userId, productoraId, role } = req.body;
+
+  try {
+    await crearPerfilesConJerarquia(userId, productoraId, role);
+    res.status(201).json({ message: "Perfiles asignados correctamente." });
+  } catch (error) {
+    console.error("Error al asignar perfiles:", error.message);
+    res.status(500).json({ error: "No se pudo asignar perfiles." });
+  }
+};

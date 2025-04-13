@@ -104,4 +104,6 @@ model Profile {
 
   user        User       @relation(fields: [userId], references: [id])
   productora  Productora @relation(fields: [productoraId], references: [id])
+  @@unique([userId, productoraId, role]) // Esto evita duplicados.
+
 }
