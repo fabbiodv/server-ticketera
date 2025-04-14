@@ -116,3 +116,49 @@ model RoleAsignee {
 
   @@id([profileId, role])  // Clave compuesta
 }
+
+
+/*
+AUTH 
+model User {
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
+  password         String? // Campo nuevo para almacenar la contraseña hasheada
+  name             String?
+  lastName         String?
+  phone            String?
+  dni              String?    @unique
+  status           UserStatus @default(PENDING_VERIFICATION)
+  role             Role       @default(USER)
+  magicLinkToken   String?    @unique
+  tokenExpiry      DateTime?
+  lastLogin        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  mpAccessToken    String?
+  mpUserId         String?
+  mpRefreshToken   String?
+  mpTokenExpiresAt DateTime?
+
+  // Relaciones
+  sessions      Session[]
+  Booking       Booking[]
+  sportsCenters SportsCenter[]
+  centerAdmins  CenterAdmin[]
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  refreshToken String   @unique
+  userAgent    String? // Para guardar información del dispositivo
+  ipAddress    String? // Para seguridad adicional
+  isValid      Boolean  @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+*/
