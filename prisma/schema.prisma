@@ -94,6 +94,7 @@ model User {
   password String
   profiles Profile[]
   Eventos Eventos[]
+  //entrada asociada al usuario 
 }
 
 
