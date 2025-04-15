@@ -93,7 +93,7 @@ export const createProductora = async (req, res) => {
         data: {
           name,
           code: nuevoCodigo,
-          email
+          email,
         }
       });
 
@@ -110,11 +110,25 @@ export const createProductora = async (req, res) => {
           role: "OWNER"
         }
       });
-
-      return [newProductora, newProfile, newRoleAsignado];
+      const productoraCompleta = await tx.productora.findUnique({
+        where: { id: newProductora.id },
+        include: {
+          profiles: {
+            include: {
+              user: true,
+              roles: true
+            }
+          }
+        }
+      });
+      if (!productoraCompleta) {
+        throw new Error("Error al obtener la productora creada");
+      }
+      return [productoraCompleta, newProfile, newRoleAsignado];
     });
 
-    res.status(201).json({ productora, profile, roleAsignado });
+    const productoraData = ProductoraResource(productora)
+    res.status(201).json(productoraData);
 
   } catch (error) {
     console.error(error);
