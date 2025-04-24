@@ -8,7 +8,7 @@ services:
     networks:
       - ticketera-network
     ports:
-      - "3000:3000"
+      - "3010:3010"
     depends_on:
       - db
     environment:
@@ -30,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=ticketera
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - postgres_data_ticketera:/var/lib/postgresql/data
     healthcheck:
