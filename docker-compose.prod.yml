@@ -15,7 +15,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5433:5433"
+      - "5433:5432"
     volumes:
       - postgres_data_ticketera:/var/lib/postgresql/data
     healthcheck:
