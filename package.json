@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node --env-file .env --watch src/app.js",
+    "db:deploy": "prisma migrate deploy && prisma generate",
     "start": "node --env-file .env.prod src/app.js"
   },
   "keywords": [],
