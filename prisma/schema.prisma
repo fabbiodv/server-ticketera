@@ -14,77 +14,106 @@ generator client {
 
 enum Role {
   SUPERADMIN // Super administrador (admin)
-  OWNER   // Creador de la productora (líder)
-  ORGANIZADOR   // Administrador (publica) ignorar 
+  OWNER // Creador de la productora (líder)
+  ORGANIZADOR // Administrador (publica) ignorar 
   LIDER // Organizador
-  SUBPUBLICA 
-  PUBLICA   // Relaciones públicas
+  SUBPUBLICA
+  PUBLICA // Relaciones públicas
 }
+
 enum estadoTipoEntrada {
   DISPONIBLE
   AGOTADA
   LIMITADA
 }
-/*
-TO-DO:
-- Crear enum publica, subpublica y lider  -> para vendedor
-- Crear un modelo de eventos
-- Crear relacion entre eventos y productoras ->listo
-- Crear relacion entre eventos y usuarios -> se hace tipo entrada y las entradas se vinculan al publica/sub/lider
-- Armar los endpoints para los eventos en el postman
-- Agregar api a los endpoints api/.....
-*/
+
+/**
+ * TO-DO:
+ * - Crear enum publica, subpublica y lider  -> para vendedor
+ * - Crear un modelo de eventos
+ * - Crear relacion entre eventos y productoras ->listo
+ * - Crear relacion entre eventos y usuarios -> se hace tipo entrada y las entradas se vinculan al publica/sub/lider
+ * - Armar los endpoints para los eventos en el postman
+ * - Agregar api a los endpoints api/.....
+ */
 enum estadoProductora {
   activa
   inactiva
 }
+
+enum estadoPago {
+  PENDING
+  SUCCESS
+  FAILURE
+}
+
 model Eventos {
-  id          Int       @id @default(autoincrement())
-  name        String
-  date        DateTime
-  startTime   DateTime
-  endTime     DateTime
-  description String
-  location    String
-  capacity   Int
+  id           Int      @id @default(autoincrement())
+  name         String
+  date         DateTime
+  startTime    DateTime
+  endTime      DateTime
+  description  String
+  location     String
+  capacity     Int
   productoraId Int
 
-  usuarios User[] 
-  productora Productora @relation(fields: [productoraId], references: [id])
+  usuarios    User[]
+  productora  Productora    @relation(fields: [productoraId], references: [id])
   tipoEntrada TipoEntrada[]
 }
+
 model Entrada {
-  id          Int       @id @default(autoincrement())
-  eventoId    Int      
+  id       Int @id @default(autoincrement())
+  eventoId Int
+  escaneado Boolean @default(false)
+  payment       Payment?
   tipoEntradaId Int
-  tipoEntrada  TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
+  tipoEntrada   TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
+  buyerId        Int
+  sellerId        Int
+  buyer          User         @relation("BuyerRelation", fields: [buyerId], references: [id])
+  seller         User         @relation("SellerRelation", fields: [sellerId], references: [id])
 }
 
+model Payment {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  entradaId Int        @unique
+  amount    Float
+  status    estadoPago @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  entrada Entrada @relation(fields: [entradaId], references: [id])
+}
 
 model TipoEntrada {
-  id          Int       @id @default(autoincrement())
-  nombre      String
-  precio      Float
-  eventoId    Int
-  totalEntradas Int
+  id                       Int               @id @default(autoincrement())
+  nombre                   String
+  precio                   Float
+  eventoId                 Int
+  totalEntradas            Int
   maximoEntradasPorPersona Int
-  estado      estadoTipoEntrada @default(DISPONIBLE)
-  disponible  Boolean @default(true)
-  evento     Eventos   @relation(fields: [eventoId], references: [id])
-  entradas   Entrada[]
+  estado                   estadoTipoEntrada @default(DISPONIBLE)
+  disponible               Boolean           @default(true)
+  evento                   Eventos           @relation(fields: [eventoId], references: [id])
+  entradas                 Entrada[]
 }
+
 model Productora {
-  id               Int       @id @default(autoincrement())
-  name             String
-  email            String    @unique
-  code             String    @unique
-  profiles         Profile[]
-  totalEvents      Int       @default(0)
-  activeEvents     Int       @default(0)
-  totalOrganizers  Int       @default(0)
-  totalRevenue     Float     @default(0)
-  status estadoProductora? @default(activa)
-  eventos Eventos[]
+  id              Int               @id @default(autoincrement())
+  name            String
+  email           String            @unique
+  code            String            @unique
+  profiles        Profile[]
+  totalEvents     Int               @default(0)
+  activeEvents    Int               @default(0)
+  totalOrganizers Int               @default(0)
+  totalRevenue    Float             @default(0)
+  status          estadoProductora? @default(activa)
+  eventos         Eventos[]
 }
 
 model User {
@@ -93,72 +122,69 @@ model User {
   email    String    @unique
   password String
   profiles Profile[]
-  Eventos Eventos[]
-  //entrada asociada al usuario 
+  Eventos  Eventos[]
+  payments Payment[]
+  entradasCompradas Entrada[] @relation("BuyerRelation")
+  entradasVendidas  Entrada[] @relation("SellerRelation")
 }
 
-
 model Profile {
-  id           Int        @id @default(autoincrement())
+  id           Int @id @default(autoincrement())
   userId       Int
   productoraId Int
 
-  user         User       @relation(fields: [userId], references: [id])
-  productora   Productora @relation(fields: [productoraId], references: [id])
-  roles        RoleAsignee[]
+  user       User          @relation(fields: [userId], references: [id])
+  productora Productora    @relation(fields: [productoraId], references: [id])
+  roles      RoleAsignee[]
 }
 
 model RoleAsignee {
   profileId Int
   role      Role
 
-  profile   Profile @relation(fields: [profileId], references: [id])
+  profile Profile @relation(fields: [profileId], references: [id])
 
-  @@id([profileId, role])  // Clave compuesta
+  @@id([profileId, role]) // Clave compuesta
 }
 
-
-/*
-AUTH 
-model User {
-  id               Int        @id @default(autoincrement())
-  email            String     @unique
-  password         String? // Campo nuevo para almacenar la contraseña hasheada
-  name             String?
-  lastName         String?
-  phone            String?
-  dni              String?    @unique
-  status           UserStatus @default(PENDING_VERIFICATION)
-  role             Role       @default(USER)
-  magicLinkToken   String?    @unique
-  tokenExpiry      DateTime?
-  lastLogin        DateTime?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  mpAccessToken    String?
-  mpUserId         String?
-  mpRefreshToken   String?
-  mpTokenExpiresAt DateTime?
-
-  // Relaciones
-  sessions      Session[]
-  Booking       Booking[]
-  sportsCenters SportsCenter[]
-  centerAdmins  CenterAdmin[]
-}
-
-model Session {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  user         User     @relation(fields: [userId], references: [id])
-  refreshToken String   @unique
-  userAgent    String? // Para guardar información del dispositivo
-  ipAddress    String? // Para seguridad adicional
-  isValid      Boolean  @default(true)
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([userId])
-}
-*/
+/**
+ * AUTH
+ * model User {
+ * id               Int        @id @default(autoincrement())
+ * email            String     @unique
+ * password         String? // Campo nuevo para almacenar la contraseña hasheada
+ * name             String?
+ * lastName         String?
+ * phone            String?
+ * dni              String?    @unique
+ * status           UserStatus @default(PENDING_VERIFICATION)
+ * role             Role       @default(USER)
+ * magicLinkToken   String?    @unique
+ * tokenExpiry      DateTime?
+ * lastLogin        DateTime?
+ * createdAt        DateTime   @default(now())
+ * updatedAt        DateTime   @updatedAt
+ * mpAccessToken    String?
+ * mpUserId         String?
+ * mpRefreshToken   String?
+ * mpTokenExpiresAt DateTime?
+ * // Relaciones
+ * sessions      Session[]
+ * Booking       Booking[]
+ * sportsCenters SportsCenter[]
+ * centerAdmins  CenterAdmin[]
+ * }
+ * model Session {
+ * id           Int      @id @default(autoincrement())
+ * userId       Int
+ * user         User     @relation(fields: [userId], references: [id])
+ * refreshToken String   @unique
+ * userAgent    String? // Para guardar información del dispositivo
+ * ipAddress    String? // Para seguridad adicional
+ * isValid      Boolean  @default(true)
+ * expiresAt    DateTime
+ * createdAt    DateTime @default(now())
+ * updatedAt    DateTime @updatedAt
+ * @@index([userId])
+ * }
+ */
