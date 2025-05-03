@@ -48,7 +48,7 @@ enum estadoPago {
 }
 
 model Eventos {
-  id           Int      @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   name         String
   date         DateTime
   startTime    DateTime
@@ -57,23 +57,22 @@ model Eventos {
   location     String
   capacity     Int
   productoraId Int
-
-  usuarios    User[]
-  productora  Productora    @relation(fields: [productoraId], references: [id])
-  tipoEntrada TipoEntrada[]
+  usuarios     User[]
+  productora   Productora    @relation(fields: [productoraId], references: [id])
+  tipoEntrada  TipoEntrada[]
 }
 
 model Entrada {
-  id       Int @id @default(autoincrement())
-  eventoId Int
-  escaneado Boolean @default(false)
+  id            Int         @id @default(autoincrement())
+  eventoId      Int
+  escaneado     Boolean     @default(false)
   payment       Payment?
   tipoEntradaId Int
   tipoEntrada   TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
-  buyerId        Int
-  sellerId        Int
-  buyer          User         @relation("BuyerRelation", fields: [buyerId], references: [id])
-  seller         User         @relation("SellerRelation", fields: [sellerId], references: [id])
+  buyerId       Int
+  sellerId      Int
+  buyer         User        @relation("BuyerRelation", fields: [buyerId], references: [id])
+  seller        User        @relation("SellerRelation", fields: [sellerId], references: [id])
 }
 
 model Payment {
@@ -84,9 +83,8 @@ model Payment {
   status    estadoPago @default(PENDING)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-
-  user    User    @relation(fields: [userId], references: [id])
-  entrada Entrada @relation(fields: [entradaId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  entrada   Entrada    @relation(fields: [entradaId], references: [id])
 }
 
 model TipoEntrada {
@@ -117,32 +115,30 @@ model Productora {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
-  name     String
-  email    String    @unique
-  password String
-  profiles Profile[]
-  Eventos  Eventos[]
-  payments Payment[]
+  id                Int       @id @default(autoincrement())
+  name              String
+  email             String    @unique
+  password          String
+  profiles          Profile[]
+  Eventos           Eventos[]
+  payments          Payment[]
   entradasCompradas Entrada[] @relation("BuyerRelation")
   entradasVendidas  Entrada[] @relation("SellerRelation")
 }
 
 model Profile {
-  id           Int @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   userId       Int
   productoraId Int
-
-  user       User          @relation(fields: [userId], references: [id])
-  productora Productora    @relation(fields: [productoraId], references: [id])
-  roles      RoleAsignee[]
+  user         User          @relation(fields: [userId], references: [id])
+  productora   Productora    @relation(fields: [productoraId], references: [id])
+  roles        RoleAsignee[]
 }
 
 model RoleAsignee {
   profileId Int
   role      Role
-
-  profile Profile @relation(fields: [profileId], references: [id])
+  profile   Profile @relation(fields: [profileId], references: [id])
 
   @@id([profileId, role]) // Clave compuesta
 }
