@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   # Primero ejecutamos solo la base de datos para asegurar que se cree correctamente
   db:

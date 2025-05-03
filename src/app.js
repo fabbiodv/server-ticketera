@@ -7,8 +7,6 @@ import eventoRoutes from "./routes/evento.routes.js";
 import tipoEntradaRoutes from "./routes/tipoEntrada.routes.js";
 import entradasRoutes from "./routes/entradas.routes.js";
 import roleAsigneeRoutes from "./routes/roleAsignee.routes.js";
-import { generatePaymentLink } from "./controllers/payment.controller.js";
-import authMiddleware from "./middlewares/auth.middleware.js";
 import profileRoutes from "./routes/profile.routes.js";
 const app = express();
 const port = process.env.PORT || 3000;
