@@ -1,20 +1,15 @@
-FROM node:20-alpine AS builder
+FROM node:20
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
+
+COPY .env.prod .env.prod
+
 RUN npm ci
 
 COPY . .
-RUN npm run build
 
-FROM node:20-alpine
-
-WORKDIR /app
-
-COPY --from=builder /app/package.json /app/package-lock.json ./
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-RUN npm ci --only=production
+RUN apt-get update && apt-get install -y curl
 
 CMD ["sh", "-c", "npm run db:deploy && npm run start"]
