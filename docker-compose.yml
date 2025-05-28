@@ -9,7 +9,7 @@ services:
     networks:
       - ticketera-network
     env_file:
-      - .env.prod
+      - .env
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -39,7 +39,7 @@ services:
     stdin_open: true
     tty: true
     env_file:
-      - .env.prod
+      - .env
     depends_on:
       db:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
     ports:
       - "3002:3000"
     env_file:
-      - ../admin-ticketera/.env.prod
+      - ../admin-ticketera/.env
     depends_on:
       backend:
         condition: service_healthy
