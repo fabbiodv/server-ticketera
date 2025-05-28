@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
 
-COPY .env.prod .env.prod
+COPY .env .env
 
 RUN npm ci
 
