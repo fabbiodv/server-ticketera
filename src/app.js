@@ -11,7 +11,11 @@ import profileRoutes from "./routes/profile.routes.js";
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: ['https://admin.partyckets.com.ar', 'https://partyckets.com.ar', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}))
 
 app.use(express.json());
 
