@@ -12,9 +12,15 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: ['https://admin.partyckets.com.ar', 'https://partyckets.com.ar', 'http://localhost:3000'],
+  origin: [
+    'https://admin.partyckets.com.ar', 
+    'https://partyckets.com.ar',
+    'http://localhost:3002',  // Para desarrollo local del admin
+    'http://localhost:3000'   // Para desarrollo local del frontend público
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }))
 
 app.use(express.json());
