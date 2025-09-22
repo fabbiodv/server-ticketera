@@ -1,24 +1,29 @@
-// webhookController.js
+import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { PrismaClient, estadoPago } from '@prisma/client';
 
-import  mercadopago from '../utils/mercadopago';
-import  { PrismaClient, estadoPago } from '@prisma/client';
 const prisma = new PrismaClient();
+const mercadopago = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN
+});
 
-const webhookMercadoPago = async (req, res) => {
+export const webhookMercadoPago = async (req, res) => {
   const { type, data } = req.body;
 
   if (type === 'payment') {
     const paymentId = data.id;
 
     try {
-      const paymentInfo = await mercadopago.payment.get(paymentId);
-      const paymentStatus = paymentInfo.body.status;
-      const externalReference = paymentInfo.body.external_reference;
-      const entradaIds = externalReference.split(',');
+      const payment = new Payment(mercadopago);
+      const paymentInfo = await payment.get({ id: paymentId });
+      
+      const paymentStatus = paymentInfo.status;
+      const externalReference = paymentInfo.external_reference;
+      const entradaIds = externalReference.split(',').map(id => parseInt(id));
 
       console.log(`Notificación de pago ${paymentId}: Estado - ${paymentStatus}`);
 
-      const updatedPayments = await prisma.payment.updateMany({
+      // Actualizar pagos
+      await prisma.payment.updateMany({
         where: {
           entradaId: {
             in: entradaIds,
@@ -28,25 +33,10 @@ const webhookMercadoPago = async (req, res) => {
           status: paymentStatus === 'approved' ? estadoPago.SUCCESS :
                   paymentStatus === 'rejected' ? estadoPago.FAILURE :
                   paymentStatus === 'pending' ? estadoPago.PENDING :
-                  estadoPago.CANCELLED, 
-          paymentDate: paymentStatus === 'approved' ? new Date() : null,
-          paymentIdOnPlatform: paymentId,
+                  estadoPago.FAILURE,
+          updatedAt: new Date(),
         },
       });
-
-      if (paymentStatus === 'approved') {
-        await prisma.entrada.updateMany({
-          where: {
-            id: {
-              in: entradaIds,
-            },
-          },
-          data: {
-            estado: 'SUCCESS',
-          },
-        });
-        console.log(`Entradas ${entradaIds.join(', ')} marcadas como pagadas.`);
-      }
 
       res.status(200).send('OK');
     } catch (error) {
@@ -56,8 +46,4 @@ const webhookMercadoPago = async (req, res) => {
   } else {
     res.status(200).send('OK'); 
   }
-};
-
-module.exports = {
-  webhookMercadoPago,
 };
