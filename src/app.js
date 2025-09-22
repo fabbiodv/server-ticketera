@@ -11,6 +11,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
 import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
+import vendedorRoutes from "./routes/vendedor.routes.js"; // Nueva línea
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use("/tipoEntrada", tipoEntradaRoutes);
 app.use("/entradas", entradasRoutes);
 app.use("/roleAsignee", roleAsigneeRoutes);
 app.use("/profile", profileRoutes);
-app.use("/payment", paymentRoutes); // Agregar esta línea
-app.use("/webhooks", mercadoPagoRoutes); // Agregar esta línea
+app.use("/payment", paymentRoutes);
+app.use("/webhooks", mercadoPagoRoutes); 
+app.use("/vendedores", vendedorRoutes); 
 

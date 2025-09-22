@@ -131,6 +131,7 @@ model Profile {
   id           Int           @id @default(autoincrement())
   userId       Int
   productoraId Int
+  qrCode       String?       @unique // Agregar QR único por perfil
   user         User          @relation(fields: [userId], references: [id])
   productora   Productora    @relation(fields: [productoraId], references: [id])
   roles        RoleAsignee[]

@@ -13,6 +13,146 @@ const generateQRCode = () => {
   return crypto.randomBytes(16).toString('hex').toUpperCase();
 };
 
+
+export const generatePaymentLinkByVendedorQR = async (req, res) => {
+  const buyerId = req.user?.userId || req.body.buyerId; // Para permitir compras sin auth
+  const { tipoEntradaId, vendedorQR, cantidad, buyerInfo } = req.body;
+
+  try {
+    // Obtener vendedor por QR
+    const vendedorProfile = await getVendedorByQR(vendedorQR);
+    const sellerId = vendedorProfile.user.id;
+
+    // Validar tipo de entrada
+    const tipoEntrada = await prisma.tipoEntrada.findUnique({
+      where: { id: tipoEntradaId },
+      include: { evento: true }
+    });
+
+    if (!tipoEntrada || !tipoEntrada.disponible) {
+      return res.status(400).json({ error: 'Tipo de entrada no disponible' });
+    }
+
+    // Verificar que el evento pertenezca a la productora del vendedor
+    if (tipoEntrada.evento.productoraId !== vendedorProfile.productoraId) {
+      return res.status(403).json({ error: 'El vendedor no puede vender entradas de este evento' });
+    }
+
+    // Si no hay buyerId, crear usuario temporal o usar los datos del buyerInfo
+    let finalBuyerId = buyerId;
+    if (!finalBuyerId && buyerInfo) {
+      // Crear usuario temporal o buscar existente
+      const existingUser = await prisma.user.findUnique({
+        where: { email: buyerInfo.email }
+      });
+
+      if (existingUser) {
+        finalBuyerId = existingUser.id;
+      } else {
+        const newUser = await prisma.user.create({
+          data: {
+            name: buyerInfo.name,
+            email: buyerInfo.email,
+            password: 'temp_password' // Password temporal
+          }
+        });
+        finalBuyerId = newUser.id;
+      }
+    }
+
+    if (!finalBuyerId) {
+      return res.status(400).json({ error: 'Información del comprador requerida' });
+    }
+
+    // Verificar límite por persona
+    const cantidadEntradasCompradas = await prisma.entrada.count({
+      where: {
+        buyerId: finalBuyerId,
+        tipoEntradaId,
+      },
+    });
+
+    if (cantidadEntradasCompradas + cantidad > tipoEntrada.maximoEntradasPorPersona) {
+      return res.status(400).json({
+        error: 'Ya alcanzaste el límite de entradas para este tipo',
+      });
+    }
+
+    // Crear múltiples entradas con QR
+    const entradas = await Promise.all(
+      Array.from({ length: cantidad }).map(() =>
+        prisma.entrada.create({
+          data: {
+            eventoId: tipoEntrada.eventoId,
+            tipoEntradaId: tipoEntrada.id,
+            buyerId: finalBuyerId,
+            sellerId,
+            qrCode: generateQRCode(),
+          },
+        })
+      )
+    );
+
+    // Crear pagos
+    const payments = await Promise.all(
+      entradas.map((entrada) =>
+        prisma.payment.create({
+          data: {
+            userId: finalBuyerId,
+            entradaId: entrada.id,
+            amount: tipoEntrada.precio,
+            status: estadoPago.PENDING,
+          },
+        })
+      )
+    );
+
+    // Crear preferencia de MercadoPago
+    const preference = new Preference(mercadopago);
+    const preferenceData = {
+      items: entradas.map((entrada) => ({
+        title: `${tipoEntrada.evento.name} - ${tipoEntrada.nombre}`,
+        quantity: 1,
+        currency_id: 'ARS',
+        unit_price: tipoEntrada.precio,
+      })),
+      payer: buyerInfo ? {
+        name: buyerInfo.name,
+        email: buyerInfo.email,
+        phone: buyerInfo.phone || {}
+      } : undefined,
+      back_urls: {
+        success: `${process.env.FRONTEND_URL}/pago/success?vendedor=${vendedorQR}`,
+        failure: `${process.env.FRONTEND_URL}/pago/failure?vendedor=${vendedorQR}`,
+        pending: `${process.env.FRONTEND_URL}/pago/pending?vendedor=${vendedorQR}`,
+      },
+      notification_url: `${process.env.API_URL}/webhooks/mercadopago`,
+      auto_return: 'approved',
+      external_reference: entradas.map((e) => e.id).join(','),
+    };
+
+    const response = await preference.create({ body: preferenceData });
+
+    return res.status(201).json({
+      init_point: response.init_point,
+      paymentIds: payments.map(p => p.id),
+      entradaIds: entradas.map(e => e.id),
+      qrCodes: entradas.map(e => e.qrCode),
+      vendedor: {
+        name: vendedorProfile.user.name,
+        productora: vendedorProfile.productora.name
+      },
+      evento: {
+        name: tipoEntrada.evento.name,
+        date: tipoEntrada.evento.date
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Error al generar el link de pago' });
+  }
+};
 export const generatePaymentLink = async (req, res) => {
   const buyerId = req.user.userId; // Corregir según tu middleware de auth
   const { tipoEntradaId, sellerId, cantidad } = req.body;

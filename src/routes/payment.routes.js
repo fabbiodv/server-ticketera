@@ -5,6 +5,7 @@ import { authMiddleware } from '../middlewares/authMiddleware.js';
 const router = Router();
 
 router.post('/generar-link', authMiddleware, generatePaymentLink);
+router.post('/generar-link-vendedor', generatePaymentLinkByVendedorQR); 
 router.get('/ventas/vendedor/:vendedorId', authMiddleware, getVentasByVendedor);
 
 export default router;
