@@ -15,7 +15,7 @@ generator client {
 enum Role {
   SUPERADMIN // Super administrador (admin)
   OWNER // Creador de la productora (líder)
-  ORGANIZADOR // Administrador (publica) ignorar 
+  ORGANIZADOR // Administrador (publica) ignorar
   LIDER // Organizador
   SUBPUBLICA
   PUBLICA // Relaciones públicas

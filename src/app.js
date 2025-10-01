@@ -32,6 +32,9 @@ app.use("/entradas", entradasRoutes);
 app.use("/roleAsignee", roleAsigneeRoutes);
 app.use("/profile", profileRoutes);
 app.use("/payment", paymentRoutes);
-app.use("/webhooks", mercadoPagoRoutes); 
-app.use("/vendedores", vendedorRoutes); 
+app.use("/webhooks", mercadoPagoRoutes);
+app.use("/vendedores", vendedorRoutes);
 
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
