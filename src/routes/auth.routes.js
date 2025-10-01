@@ -10,7 +10,7 @@ import {
   loginWithPassword,
   updatePassword
 } from '../controllers/auth.controller.js'
-import { authenticateToken } from '../middleware/auth.js'
+import { authenticateToken } from '../middlewares/authMiddleware.js'
 
 const router = Router()
 

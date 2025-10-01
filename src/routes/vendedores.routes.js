@@ -3,7 +3,7 @@ import {
   getEventosDisponiblesByQR, 
   generarQRVendedor,
   getVendedoresProductora 
-} from '../controllers/vendedor.controller.js';
+} from '../controllers/vendedores.controller.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = Router();

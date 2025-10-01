@@ -11,10 +11,10 @@ import profileRoutes from "./routes/profile.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
 import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
-import vendedorRoutes from "./routes/vendedor.routes.js"; // Nueva línea
+import vendedorRoutes from "./routes/vendedores.routes.js"; // Nueva línea
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
