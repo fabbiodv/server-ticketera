@@ -19,7 +19,6 @@ export const getProfiles = async (req, res) => {
           }
         }),
 
-        // Filtros adicionales dinámicos
         ...Object.fromEntries(
           Object.entries(otherFilters)
             .filter(([_, value]) => value)
