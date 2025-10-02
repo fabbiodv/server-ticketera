@@ -127,31 +127,101 @@ export const deleteTipoEntrada = async (req, res) => {
 }
 export const getTiposEntrada = async (req, res) => {
   try {
-    const tiposEntrada = await prisma.tipoEntrada.findMany({
-      include: { evento: true }
+    const {
+      page, limit, sortBy = 'nombre', sortOrder = 'asc',
+      nombre, eventoId, estado, disponible,
+      minPrecio, maxPrecio, minTotal, maxTotal,
+      ...otherFilters
+    } = req.query;
+
+    const tipoEntradas = await prisma.tipoEntrada.findMany({
+      where: {
+        ...(nombre && { nombre: { contains: nombre, mode: 'insensitive' } }),
+        ...(eventoId && { eventoId: parseInt(eventoId) }),
+        ...(estado && { estado }),
+        ...(disponible !== undefined && { disponible: disponible === 'true' }),
+        ...((minPrecio || maxPrecio) && {
+          precio: {
+            ...(minPrecio && { gte: parseFloat(minPrecio) }),
+            ...(maxPrecio && { lte: parseFloat(maxPrecio) })
+          }
+        }),
+        ...((minTotal || maxTotal) && {
+          totalEntradas: {
+            ...(minTotal && { gte: parseInt(minTotal) }),
+            ...(maxTotal && { lte: parseInt(maxTotal) })
+          }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        evento: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            productora: { select: { name: true } }
+          }
+        },
+        _count: {
+          select: { Entrada: true }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
     });
-    res.json(tiposEntrada);
+
+    res.json(tipoEntradas);
   } catch (error) {
-    console.error("Error al obtener tipos de entrada:", error);
-    res.status(500).json({ error: "Error al obtener tipos de entrada" });
+    res.status(500).json({ error: 'Error al obtener tipos de entrada: ' + error.message });
   }
 };
+
 export const getTipoEntradaById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { includeEvento, includeEntradas } = req.query;
+
     const tipoEntrada = await prisma.tipoEntrada.findUnique({
-      where: { id: Number(id) },
-      include: { evento: true }
+      where: { id: parseInt(id) },
+      include: {
+        ...(includeEvento === 'true' && {
+          evento: {
+            include: {
+              productora: { select: { name: true, code: true } }
+            }
+          }
+        }),
+        ...(includeEntradas === 'true' && {
+          Entrada: {
+            include: {
+              buyer: { select: { name: true, email: true } },
+              seller: { select: { name: true, email: true } }
+            }
+          }
+        }),
+        _count: {
+          select: { Entrada: true }
+        }
+      }
     });
 
     if (!tipoEntrada) {
-      return res.status(404).json({ error: "Tipo de entrada no encontrado" });
+      return res.status(404).json({ error: 'Tipo de entrada no encontrado' });
     }
 
     res.json(tipoEntrada);
   } catch (error) {
-    console.error("Error al obtener tipo de entrada:", error);
-    res.status(500).json({ error: "Error al obtener tipo de entrada" });
+    res.status(500).json({ error: 'Error al obtener tipo de entrada: ' + error.message });
   }
 };
 export const getTiposEntradaByEventoId = async (req, res) => {

@@ -2,23 +2,69 @@ import { PrismaClient } from "@prisma/client/extension";
 import prisma from "../config/database.js";
 
 
-export const getAllEventos = async(req, res ) => {
-    try{
-        const eventos = await prisma.eventos.findMany({
-            include: {
-                productora: true,
-                
-            }
-        });
-        if(!eventos || eventos.length === 0){
-            return res.status(404).json({ message: "No se encontraron eventos" });
+export const getAllEventos = async (req, res) => {
+  try {
+    const {
+      page, limit, sortBy = 'date', sortOrder = 'asc',
+      name, location, productoraId, status,
+      dateFrom, dateTo, capacity, minCapacity, maxCapacity,
+      ...otherFilters
+    } = req.query;
+
+    const eventos = await prisma.eventos.findMany({
+      where: {
+        ...(name && { name: { contains: name, mode: 'insensitive' } }),
+        ...(location && { location: { contains: location, mode: 'insensitive' } }),
+        ...(productoraId && { productoraId: parseInt(productoraId) }),
+        ...(status && { status }),
+        ...(capacity && { capacity: parseInt(capacity) }),
+        ...(minCapacity && { capacity: { gte: parseInt(minCapacity) } }),
+        ...(maxCapacity && { capacity: { lte: parseInt(maxCapacity) } }),
+        ...((dateFrom || dateTo) && {
+          date: {
+            ...(dateFrom && { gte: new Date(dateFrom) }),
+            ...(dateTo && { lte: new Date(dateTo) })
+          }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        productora: { select: { name: true, code: true } },
+        tipoEntrada: {
+          select: {
+            id: true,
+            nombre: true,
+            precio: true,
+            estado: true,
+            disponible: true,
+            totalEntradas: true
+          }
+        },
+        _count: {
+          select: {
+            tipoEntrada: true,
+            Entrada: true
+          }
         }
-        res.status(200).json(eventos);
-    }catch(error){
-        // console.error("Error al obtener eventos:", error);
-        res.status(500).json({ error: "Error al obtener eventos" });
-    }
-}
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    res.json(eventos);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener eventos: ' + error.message });
+  }
+};
 
 export const getEventoById = async(req, res) => {
     try{

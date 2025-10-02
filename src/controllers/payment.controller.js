@@ -8,6 +8,113 @@ const mercadopago = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN
 });
 
+export const getAllPayments = async (req, res) => {
+  try {
+    const {
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      userId, entradaId, status, paymentMethod,
+      minAmount, maxAmount, createdFrom, createdTo,
+      ...otherFilters
+    } = req.query;
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        ...(userId && { userId: parseInt(userId) }),
+        ...(entradaId && { entradaId: parseInt(entradaId) }),
+        ...(status && { status }),
+        ...(paymentMethod && { paymentMethod }),
+        ...((minAmount || maxAmount) && {
+          amount: {
+            ...(minAmount && { gte: parseFloat(minAmount) }),
+            ...(maxAmount && { lte: parseFloat(maxAmount) })
+          }
+        }),
+        ...((createdFrom || createdTo) && {
+          createdAt: {
+            ...(createdFrom && { gte: new Date(createdFrom) }),
+            ...(createdTo && { lte: new Date(createdTo) })
+          }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        user: { select: { name: true, email: true } },
+        entrada: {
+          include: {
+            evento: { select: { name: true, date: true } },
+            tipoEntrada: { select: { nombre: true } }
+          }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener pagos: ' + error.message });
+  }
+};
+
+export const getVentasByVendedor = async (req, res) => {
+  try {
+    const { vendedorId } = req.params;
+    const {
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      status, eventoId, tipoEntradaId,
+      createdFrom, createdTo,
+      ...otherFilters
+    } = req.query;
+
+    const ventas = await prisma.entrada.findMany({
+      where: {
+        sellerId: parseInt(vendedorId),
+        ...(eventoId && { eventoId: parseInt(eventoId) }),
+        ...(tipoEntradaId && { tipoEntradaId: parseInt(tipoEntradaId) }),
+        ...(status && {
+          payment: { status }
+        }),
+        ...((createdFrom || createdTo) && {
+          createdAt: {
+            ...(createdFrom && { gte: new Date(createdFrom) }),
+            ...(createdTo && { lte: new Date(createdTo) })
+          }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        evento: { select: { name: true, date: true } },
+        buyer: { select: { name: true, email: true } },
+        tipoEntrada: { select: { nombre: true, precio: true } },
+        payment: { select: { status: true, amount: true, createdAt: true } }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    res.json(ventas);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener ventas: ' + error.message });
+  }
+};
 // Función para generar QR único
 const generateQRCode = () => {
   return crypto.randomBytes(16).toString('hex').toUpperCase();
@@ -257,64 +364,5 @@ export const generatePaymentLink = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Error al generar el link de pago' });
-  }
-};
-
-// Nuevo endpoint para obtener ventas por vendedor
-export const getVentasByVendedor = async (req, res) => {
-  try {
-    const { vendedorId } = req.params;
-    const { fechaInicio, fechaFin } = req.query;
-
-    const where = {
-      sellerId: parseInt(vendedorId),
-      payment: {
-        status: estadoPago.SUCCESS
-      }
-    };
-
-    if (fechaInicio && fechaFin) {
-      where.createdAt = {
-        gte: new Date(fechaInicio),
-        lte: new Date(fechaFin)
-      };
-    }
-
-    const ventas = await prisma.entrada.findMany({
-      where,
-      include: {
-        tipoEntrada: {
-          include: {
-            evento: true
-          }
-        },
-        buyer: {
-          select: { id: true, name: true, email: true }
-        },
-        payment: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    const resumen = {
-      totalVentas: ventas.length,
-      montoTotal: ventas.reduce((sum, venta) => sum + venta.payment.amount, 0),
-      ventasPorEvento: ventas.reduce((acc, venta) => {
-        const eventoNombre = venta.tipoEntrada.evento.name;
-        acc[eventoNombre] = (acc[eventoNombre] || 0) + 1;
-        return acc;
-      }, {})
-    };
-
-    res.json({
-      ventas,
-      resumen
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al obtener ventas del vendedor' });
   }
 };

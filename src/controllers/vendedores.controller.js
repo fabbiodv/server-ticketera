@@ -1,10 +1,15 @@
 import prisma from '../config/database.js';
 import { asignarQRToProfile, getVendedorByQR } from '../services/generateVendedorQr.services.js';
 
-// Obtener eventos disponibles para un vendedor por QR
+
 export const getEventosDisponiblesByQR = async (req, res) => {
   try {
     const { qrCode } = req.params;
+    const {
+      sortBy = 'date', sortOrder = 'asc',
+      name, location, dateFrom, dateTo,
+      ...otherFilters
+    } = req.query;
 
     // Obtener vendedor por QR
     const vendedorProfile = await getVendedorByQR(qrCode);
@@ -13,9 +18,22 @@ export const getEventosDisponiblesByQR = async (req, res) => {
     const eventos = await prisma.eventos.findMany({
       where: {
         productoraId: vendedorProfile.productoraId,
-        date: {
-          gte: new Date() // Solo eventos futuros
-        }
+        date: { gte: new Date() },
+        ...(name && { name: { contains: name, mode: 'insensitive' } }),
+        ...(location && { location: { contains: location, mode: 'insensitive' } }),
+        ...((dateFrom || dateTo) && {
+          date: {
+            ...(dateFrom && { gte: new Date(dateFrom) }),
+            ...(dateTo && { lte: new Date(dateTo) })
+          }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
       },
       include: {
         tipoEntrada: {
@@ -28,9 +46,7 @@ export const getEventosDisponiblesByQR = async (req, res) => {
           select: { name: true, code: true }
         }
       },
-      orderBy: {
-        date: 'asc'
-      }
+      orderBy: { [sortBy]: sortOrder }
     });
 
     // Filtrar solo eventos con tipos de entrada disponibles
@@ -40,42 +56,73 @@ export const getEventosDisponiblesByQR = async (req, res) => {
 
     res.json({
       vendedor: {
-        id: vendedorProfile.user.id,
         name: vendedorProfile.user.name,
-        email: vendedorProfile.user.email,
-        productora: vendedorProfile.productora.name,
-        qrCode: vendedorProfile.qrCode
+        productora: vendedorProfile.productora.name
       },
-      eventos: eventosConEntradas.map(evento => ({
-        id: evento.id,
-        name: evento.name,
-        date: evento.date,
-        startTime: evento.startTime,
-        endTime: evento.endTime,
-        description: evento.description,
-        location: evento.location,
-        capacity: evento.capacity,
-        productora: evento.productora.name,
-        tiposEntrada: evento.tipoEntrada.map(tipo => ({
-          id: tipo.id,
-          nombre: tipo.nombre,
-          precio: tipo.precio,
-          totalEntradas: tipo.totalEntradas,
-          maximoEntradasPorPersona: tipo.maximoEntradasPorPersona,
-          estado: tipo.estado,
-          disponible: tipo.disponible
-        }))
-      }))
+      eventos: eventosConEntradas
     });
-
   } catch (error) {
-    console.error('Error al obtener eventos:', error);
-    res.status(400).json({ 
-      error: error.message || 'Error al obtener eventos del vendedor' 
-    });
+    res.status(500).json({ error: 'Error al obtener eventos: ' + error.message });
   }
 };
 
+export const getVendedoresProductora = async (req, res) => {
+  try {
+    const { productoraId } = req.params;
+    const {
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      name, email, hasQR, role,
+      ...otherFilters
+    } = req.query;
+
+    const vendedores = await prisma.profile.findMany({
+      where: {
+        productoraId: parseInt(productoraId),
+        roles: {
+          some: {
+            role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER'] }
+          }
+        },
+        ...(hasQR === 'true' && { qrCode: { not: null } }),
+        ...(hasQR === 'false' && { qrCode: null }),
+        ...(role && {
+          roles: { some: { role } }
+        }),
+        ...(name && {
+          user: { name: { contains: name, mode: 'insensitive' } }
+        }),
+        ...(email && {
+          user: { email: { contains: email, mode: 'insensitive' } }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, status: true }
+        },
+        roles: true,
+        productora: {
+          select: { name: true, code: true }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    res.json(vendedores);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener vendedores: ' + error.message });
+  }
+};
 // Generar o obtener QR de un perfil vendedor
 export const generarQRVendedor = async (req, res) => {
   try {
@@ -98,49 +145,6 @@ export const generarQRVendedor = async (req, res) => {
   }
 };
 
-// Listar vendedores con sus QR de una productora
-export const getVendedoresProductora = async (req, res) => {
-  try {
-    const { productoraId } = req.params;
-
-    const vendedores = await prisma.profile.findMany({
-      where: {
-        productoraId: parseInt(productoraId),
-        roles: {
-          some: {
-            role: {
-              in: ['PUBLICA', 'SUBPUBLICA', 'LIDER']
-            }
-          }
-        }
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        },
-        roles: true
-      }
-    });
-
-    const vendedoresConQR = vendedores.map(profile => ({
-      profileId: profile.id,
-      user: profile.user,
-      roles: profile.roles.map(r => r.role),
-      qrCode: profile.qrCode,
-      hasQR: !!profile.qrCode,
-      qrUrl: profile.qrCode ? `${process.env.FRONTEND_URL}/vendedor/${profile.qrCode}` : null
-    }));
-
-    res.json(vendedoresConQR);
-
-  } catch (error) {
-    console.error('Error al obtener vendedores:', error);
-    res.status(500).json({ 
-      error: 'Error al obtener vendedores de la productora' 
-    });
-  }
-  
-};
 export const generatePaymentLinkByVendedorQR = async (req, res) => {
   const buyerId = req.user?.userId || req.body.buyerId;
   const { tipoEntradaId, vendedorQR, cantidad, buyerInfo } = req.body;
