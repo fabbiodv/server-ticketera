@@ -1,6 +1,6 @@
 import prisma from "../config/database.js";
 import { crearPerfilesConJerarquia } from "../utils/profileService.js";
-export const getAllProfiles = async (req, res) => {
+export const getProfiles = async (req, res) => {
   try {
     const {
       page, limit, sortBy = 'createdAt', sortOrder = 'desc',
