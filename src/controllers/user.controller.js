@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import prisma from "../config/database.js";
 
 
-export const getUsers = async (req, res) => {
+const getUsers = async (req, res) => {
   try {
     const { role, productoraId, ...userFilters } = req.query;
     const where = {
@@ -37,7 +37,7 @@ export const getUsers = async (req, res) => {
 };
 
 
-export const createUser = async (req, res) => {
+const createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -61,7 +61,7 @@ export const createUser = async (req, res) => {
   }
 };
 
-export const getUsersByProductoraRole = async (req, res) => {
+const getUsersByProductoraRole = async (req, res) => {
   try {
     const { role, productoraId } = req.query;
 
@@ -83,3 +83,37 @@ export const getUsersByProductoraRole = async (req, res) => {
   }
 };
 
+const updateUser = async(req,res) => {
+  try{
+    const {id} = req.params;
+    const {name, email, password} = req.body;
+    const updatedData = {};
+    if(name) updatedData.name = name;
+    if(email) updatedData.email = email;
+    if(password) updatedData.password = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.update({
+      where:{id: Number(id)},
+      data: updatedData
+    });
+    res.json({message: "Usuario actualizado", user});
+  }catch(error){
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).json({ error: "Error al actualizar usuario", details: error.message });
+  }
+}
+
+const deleteUser = async(req,res) => {
+  try{
+    const {id} = req.params;
+    const user = await prisma.user.delete({
+      where:{id: Number(id)}
+    });
+    res.json({message: "Usuario eliminado", user});
+  }catch(error){
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).json({ error: "Error al eliminar usuario", details: error.message });
+  }
+}
+
+export { getUsers, createUser, getUsersByProductoraRole, updateUser, deleteUser };

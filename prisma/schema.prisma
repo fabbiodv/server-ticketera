@@ -47,6 +47,14 @@ enum estadoPago {
   FAILURE
 }
 
+enum UserStatus {
+
+  PENDING_VERIFICATION
+  ACTIVE
+  INACTIVE
+
+}
+
 model Eventos {
   id           Int           @id @default(autoincrement())
   name         String
@@ -119,6 +127,7 @@ model User {
   name              String
   email             String    @unique
   password          String
+  status           UserStatus @default(PENDING_VERIFICATION)
   profiles          Profile[]
   Eventos           Eventos[]
   payments          Payment[]
