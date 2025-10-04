@@ -8,8 +8,13 @@ import tipoEntradaRoutes from "./routes/tipoEntrada.routes.js";
 import entradasRoutes from "./routes/entradas.routes.js";
 import roleAsigneeRoutes from "./routes/roleAsignee.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
+import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
+import vendedorRoutes from "./routes/vendedores.routes.js"; // Nueva línea
+
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 app.use(cors({
   origin: [
@@ -30,6 +35,7 @@ app.get("/health", (req, res) => {
   res.status(200).json({ message: "ok" });
 });
 
+app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/productoras", productoraRoutes);
 app.use("/eventos", eventoRoutes);
@@ -37,19 +43,10 @@ app.use("/tipoEntrada", tipoEntradaRoutes);
 app.use("/entradas", entradasRoutes);
 app.use("/roleAsignee", roleAsigneeRoutes);
 app.use("/profile", profileRoutes);
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ message: "Algo salió mal en el servidor."+err.message });
+app.use("/payment", paymentRoutes);
+app.use("/webhooks", mercadoPagoRoutes);
+app.use("/vendedores", vendedorRoutes);
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
-
-app.listen(port, async () => {
-  try {
-    await prisma.$connect()
-    console.log('✅ Conexión a la base de datos establecida')
-    console.log(`🚀 Servidor corriendo en el puerto ${port}`)
-  } catch (error) {
-    console.error('❌ Error conectando a la base de datos:', error)
-  }
-})
-
-export default app
