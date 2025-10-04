@@ -18,27 +18,40 @@ import mercadoPagoRoutes from "../../src/routes/mercadoPago.routes.js";
  * Crea una instancia de la aplicación Express para testing
  * Evita conflictos de puertos y permite testing aislado
  */
-export const createTestApp = () => {
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+
+// Routes imports
+import userRoutes from '../../src/routes/user.routes.js';
+import authRoutes from '../../src/routes/auth.routes.js';
+import productoraRoutes from '../../src/routes/productora.routes.js';
+import eventoRoutes from '../../src/routes/evento.routes.js';
+import tipoEntradaRoutes from '../../src/routes/tipoEntrada.routes.js';
+import entradasRoutes from '../../src/routes/entradas.routes.js';
+import roleAsigneeRoutes from '../../src/routes/roleAsignee.routes.js';
+import profileRoutes from '../../src/routes/profile.routes.js';
+import paymentRoutes from '../../src/routes/payment.routes.js';
+import mercadoPagoRoutes from '../../src/routes/mercadoPago.routes.js';
+import vendedorRoutes from '../../src/routes/vendedores.routes.js';
+
+export function createTestApp() {
   const app = express();
 
-  // Configuración de CORS para testing
+  // CORS configuration para tests
   app.use(cors({
-    origin: true, // Permitir todos los orígenes en testing
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true
   }));
 
-  app.use(express.json());
+  // Middlewares
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
 
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.status(200).json({ message: "ok" });
-  });
-
-  // Registrar todas las rutas
-  app.use("/auth", authRoutes);
+  // Routes
   app.use("/users", userRoutes);
+  app.use("/auth", authRoutes);
   app.use("/productoras", productoraRoutes);
   app.use("/eventos", eventoRoutes);
   app.use("/tipoEntrada", tipoEntradaRoutes);
@@ -46,20 +59,18 @@ export const createTestApp = () => {
   app.use("/roleAsignee", roleAsigneeRoutes);
   app.use("/profile", profileRoutes);
   app.use("/payment", paymentRoutes);
-  app.use("/mercadopago", mercadoPagoRoutes);
+  app.use("/webhooks", mercadoPagoRoutes);
+  app.use("/vendedores", vendedorRoutes);
 
-  // Error handling middleware
+  // Error handling middleware para tests
   app.use((err, req, res, next) => {
-    console.error('Test app error:', err);
-    res.status(500).json({ error: "Error interno del servidor en testing" });
-  });
-
-  // 404 handler
-  app.use('*', (req, res) => {
-    res.status(404).json({ error: 'Endpoint no encontrado' });
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
   });
 
   return app;
-};
+}
+
+export { createTestApp };
 
 export default createTestApp;

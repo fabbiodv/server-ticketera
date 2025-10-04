@@ -1,8 +1,8 @@
 
-function sendEmail(to, subject, body) {
+async function sendEmail({ to, subject, html }) {
   console.log(`Sending email to ${to} with subject "${subject}"`);
-  // Aquí iría la lógica real para enviar el correo electrónico
+  // Mock para testing - en producción aquí iría Resend, SendGrid, etc.
+  return { success: true, messageId: 'mock-email-id' };
 }
-export default {
-  sendEmail
-}
+
+export default sendEmail;

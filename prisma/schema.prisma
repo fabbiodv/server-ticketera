@@ -144,7 +144,7 @@ model TipoEntrada {
   
   // Relaciones
   evento                   Eventos           @relation(fields: [eventoId], references: [id])
-  Entrada                  Entrada[]         // Cambiar nombre para consistencia
+  entradas                 Entrada[]         // Cambiar nombre para consistencia
 }
 
 model Entrada {
@@ -181,45 +181,11 @@ model Payment {
   entrada   Entrada    @relation(fields: [entradaId], references: [id])
 }
 
-model TipoEntrada {
-  id                       Int               @id @default(autoincrement())
-  nombre                   String
-  precio                   Float
-  eventoId                 Int
-  totalEntradas            Int
-  maximoEntradasPorPersona Int
-  estado                   estadoTipoEntrada @default(DISPONIBLE)
-  disponible               Boolean           @default(true)
-  evento                   Eventos           @relation(fields: [eventoId], references: [id])
-  entradas                 Entrada[]
-}
 
-model Productora {
-  id              Int               @id @default(autoincrement())
-  name            String
-  email           String            @unique
-  code            String            @unique
-  profiles        Profile[]
-  totalEvents     Int               @default(0)
-  activeEvents    Int               @default(0)
-  totalOrganizers Int               @default(0)
-  totalRevenue    Float             @default(0)
-  status          estadoProductora? @default(activa)
-  eventos         Eventos[]
-}
 
-model User {
-  id                Int       @id @default(autoincrement())
-  name              String
-  email             String    @unique
-  password          String
-  status           UserStatus @default(PENDING_VERIFICATION)
-  profiles          Profile[]
-  Eventos           Eventos[]
-  payments          Payment[]
-  entradasCompradas Entrada[] @relation("BuyerRelation")
-  entradasVendidas  Entrada[] @relation("SellerRelation")
-}
+
+
+
 
 model Profile {
   id           Int           @id @default(autoincrement())

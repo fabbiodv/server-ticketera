@@ -12,8 +12,13 @@ export const login = async (req, res) => {
   try {
     const { email } = req.body
 
+    // Validar que se proporcione email
+    if (!email) {
+      return res.status(400).json({ error: 'Email es requerido' })
+    }
+
     // Genera un hash aleatorio para el magic link
-    const magicLinkToken = await bcrypt.hash(email + Date.now(), 10)
+    const magicLinkToken = await bcrypt.hash(email + Date.now().toString(), 10)
     const tokenExpiry = new Date(Date.now() + 3600000) // 1 hora
 
     // Actualizamos o creamos el usuario con el token
@@ -43,7 +48,7 @@ export const login = async (req, res) => {
       return res.status(500).json({ error: 'Error al enviar el email de acceso' });
     }
 
-    res.json({ message: 'Se ha enviado un enlace de acceso a tu email' });
+    res.json({ message: 'Magic link enviado correctamente' });
   } catch (error) {
     console.error(error)
     res.status(400).json({ error: 'Error en el login' })
@@ -138,7 +143,7 @@ export const refresh = async (req, res) => {
     const refreshToken = req.cookies.refresh_token
 
     if (!refreshToken) {
-      return res.status(401).json({ error: 'Refresh token no proporcionado' })
+      return res.status(401).json({ error: 'Refresh token requerido' })
     }
 
     // Verificar el refresh token en la base de datos
@@ -222,7 +227,7 @@ export const getSession = async (req, res) => {
         lastName: true,
         phone: true,
         dni: true,
-        role: true,
+        status: true,
         mpAccessToken: true,
         mpRefreshToken: true,
         createdAt: true,
@@ -325,10 +330,10 @@ export const register = async (req, res) => {
     const accessToken = jwt.sign(
       {
         userId: user.id,
-        role: user.role
+        email: user.email
       },
       process.env.JWT_SECRET,
-      { expiresIn: '50m' }
+      { expiresIn: '15m' }
     )
 
     const refreshToken = jwt.sign(
@@ -349,18 +354,28 @@ export const register = async (req, res) => {
       }
     })
 
+    // Configurar cookies
+    const cookieConfig = getCookieConfig()
+    
+    res.cookie('access_token', accessToken, {
+      ...cookieConfig,
+      maxAge: 15 * 60 * 1000 // 15 minutos
+    })
+
+    res.cookie('refresh_token', refreshToken, {
+      ...cookieConfig,
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+    })
+
     // Enviar respuesta con tokens
-    res.json({
+    res.status(201).json({
       message: 'Usuario registrado correctamente',
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
-      },
-      tokens: {
-        accessToken,
-        refreshToken
+        lastName: user.lastName,
+        status: user.status
       }
     })
   } catch (error) {
@@ -512,3 +527,11 @@ export const updatePassword = async (req, res) => {
     res.status(500).json({ error: 'Error al actualizar la contraseña' })
   }
 }
+
+// Función helper para configuración de cookies
+const getCookieConfig = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  path: '/'
+})

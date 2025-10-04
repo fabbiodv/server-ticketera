@@ -1,14 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import request from 'supertest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import request from 'supertest';
+import { PrismaClient } from '@prisma/client';
+import app from '../../src/app.js';
 
-import { createTestApp } from '../../helpers/testApp.js'
-import { 
-  createTestUser, 
-  cleanDatabase, 
-  expectErrorResponse, 
-  expectSuccessResponse,
-  authenticatedRequest
-} from '../../helpers/testHelpers.js'
+const prisma = new PrismaClient();
 import { userFixtures } from '../../fixtures/testData.js'
 
 describe('Authentication Integration Tests', () => {

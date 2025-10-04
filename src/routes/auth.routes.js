@@ -4,6 +4,7 @@ import {
   verify,
   logout,
   getSession,
+  refresh,
   connectMercadoPago,
   mercadoPagoCallback,
   register,
@@ -18,6 +19,8 @@ router.post('/login', login)
 router.get('/verify', verify)
 router.post('/logout', logout)
 router.get('/session', authenticateToken, getSession)
+router.get('/me', authenticateToken, getSession)  // Alias para /session
+router.post('/refresh', refresh)
 router.post('/connect-mercadopago', authenticateToken, connectMercadoPago)
 router.get('/mp-callback', mercadoPagoCallback)
 

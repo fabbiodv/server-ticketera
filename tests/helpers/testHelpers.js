@@ -12,7 +12,6 @@ export const createTestUser = async (overrides = {}) => {
     lastName: 'Test LastName',
     phone: '1234567890',
     dni: '12345678',
-    role: 'USER',
     status: 'ACTIVE',
     password: await bcrypt.hash('password123', 10),
     ...overrides

@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import prisma from "../config/database.js";
 
 
 /**
@@ -7,7 +8,12 @@ import jwt from "jsonwebtoken";
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    // Si no hay token en el header, buscar en cookies
+    if (!token) {
+      token = req.cookies?.access_token;
+    }
 
     if (!token) {
       return res.status(401).json({ 
