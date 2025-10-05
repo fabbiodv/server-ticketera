@@ -1,30 +1,10 @@
-import express from "express";
-import cors from "cors";
-import prisma from "../../src/config/database.js";
-
-// Importar todas las rutas
-import authRoutes from "../../src/routes/auth.routes.js";
-import productoraRoutes from "../../src/routes/productora.routes.js";
-import userRoutes from "../../src/routes/user.routes.js";
-import eventoRoutes from "../../src/routes/evento.routes.js";
-import tipoEntradaRoutes from "../../src/routes/tipoEntrada.routes.js";
-import entradasRoutes from "../../src/routes/entradas.routes.js";
-import roleAsigneeRoutes from "../../src/routes/roleAsignee.routes.js";
-import profileRoutes from "../../src/routes/profile.routes.js";
-import paymentRoutes from "../../src/routes/payment.routes.js";
-import mercadoPagoRoutes from "../../src/routes/mercadoPago.routes.js";
-
-/**
- * Crea una instancia de la aplicación Express para testing
- * Evita conflictos de puertos y permite testing aislado
- */
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 // Routes imports
-import userRoutes from '../../src/routes/user.routes.js';
 import authRoutes from '../../src/routes/auth.routes.js';
+import userRoutes from '../../src/routes/user.routes.js';
 import productoraRoutes from '../../src/routes/productora.routes.js';
 import eventoRoutes from '../../src/routes/evento.routes.js';
 import tipoEntradaRoutes from '../../src/routes/tipoEntrada.routes.js';
@@ -32,6 +12,7 @@ import entradasRoutes from '../../src/routes/entradas.routes.js';
 import roleAsigneeRoutes from '../../src/routes/roleAsignee.routes.js';
 import profileRoutes from '../../src/routes/profile.routes.js';
 import paymentRoutes from '../../src/routes/payment.routes.js';
+import checkoutRoutes from '../../src/routes/checkout.routes.js';
 import mercadoPagoRoutes from '../../src/routes/mercadoPago.routes.js';
 import vendedorRoutes from '../../src/routes/vendedores.routes.js';
 
@@ -59,6 +40,7 @@ export function createTestApp() {
   app.use("/roleAsignee", roleAsigneeRoutes);
   app.use("/profile", profileRoutes);
   app.use("/payment", paymentRoutes);
+  app.use("/checkout", checkoutRoutes);
   app.use("/webhooks", mercadoPagoRoutes);
   app.use("/vendedores", vendedorRoutes);
 
@@ -70,7 +52,5 @@ export function createTestApp() {
 
   return app;
 }
-
-export { createTestApp };
 
 export default createTestApp;

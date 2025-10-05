@@ -10,6 +10,7 @@ import roleAsigneeRoutes from "./routes/roleAsignee.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
+import checkoutRoutes from "./routes/checkout.routes.js";
 import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
 import vendedorRoutes from "./routes/vendedores.routes.js"; // Nueva línea
 
@@ -44,6 +45,7 @@ app.use("/entradas", entradasRoutes);
 app.use("/roleAsignee", roleAsigneeRoutes);
 app.use("/profile", profileRoutes);
 app.use("/payment", paymentRoutes);
+app.use("/checkout", checkoutRoutes);
 app.use("/webhooks", mercadoPagoRoutes);
 app.use("/vendedores", vendedorRoutes);
 
