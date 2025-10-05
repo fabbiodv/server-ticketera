@@ -12,7 +12,9 @@
     "db:deploy": "prisma migrate deploy && prisma generate",
     "start": "node --env-file .env.prod src/app.js",
     "seed": "node --env-file .env prisma/seed.js",
-    "db:seed": "npm run seed"
+    "db:seed": "npm run seed",
+    "routes": "node src/utils/listRoutes.js",
+    "list-routes": "node src/utils/listRoutes.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-list-endpoints": "^7.1.1",
     "jsonwebtoken": "^9.0.2",
     "mercadopago": "^2.5.0",
     "node-cron": "^4.2.1",
