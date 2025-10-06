@@ -70,7 +70,7 @@ export const getEventoById = async(req, res) => {
     try{
         const prisma = new PrismaClient();
         const { id } = req.params;
-        const evento = await prisma.evento.findUnique({
+        const evento = await prisma.eventos.findUnique({
             where: { id: Number(id) },
             include: {
                 productora: true,
