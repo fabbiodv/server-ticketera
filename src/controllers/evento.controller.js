@@ -107,6 +107,124 @@ export const getEventosByProductora = async (req, res) => {
     }
 }
 
+export const getMyEventos = async (req, res) => {
+    try {
+        const userId = req.user.userId; 
+        const {
+            page = 1, limit = 10, sortBy = 'date', sortOrder = 'asc',
+            name, location, status, dateFrom, dateTo
+        } = req.query;
+
+        const userProfiles = await prisma.profile.findMany({
+            where: { 
+                userId: userId,
+                roles: {
+                    some: {
+                        role: {
+                            in: ['OWNER', 'LIDER', 'PUBLICA', 'SUBPUBLICA', 'ORGANIZADOR']
+                        }
+                    }
+                }
+            },
+            include: {
+                productora: true,
+                roles: true
+            }
+        });
+
+        if (userProfiles.length === 0) {
+            return res.json({
+                eventos: [],
+                pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+                message: "No tienes permisos de gestión en ninguna productora"
+            });
+        }
+
+        const productoraIds = userProfiles.map(profile => profile.productoraId);
+
+        const whereConditions = {
+            productoraId: { in: productoraIds },
+            ...(name && { name: { contains: name, mode: 'insensitive' } }),
+            ...(location && { location: { contains: location, mode: 'insensitive' } }),
+            ...(status && { status }),
+            ...(dateFrom && { date: { gte: new Date(dateFrom) } }),
+            ...(dateTo && { date: { lte: new Date(dateTo) } })
+        };
+
+        const total = await prisma.eventos.count({ where: whereConditions });
+
+        const eventos = await prisma.eventos.findMany({
+            where: whereConditions,
+            include: {
+                productora: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        email: true
+                    }
+                },
+                tipoEntrada: {
+                    select: {
+                        id: true,
+                        nombre: true,
+                        precio: true,
+                        totalEntradas: true,
+                        estado: true,
+                        disponible: true
+                    }
+                },
+                _count: {
+                    select: {
+                        Entrada: true 
+                    }
+                }
+            },
+            orderBy: {
+                [sortBy]: sortOrder
+            },
+            skip: (parseInt(page) - 1) * parseInt(limit),
+            take: parseInt(limit)
+        });
+
+        const eventosWithRoles = eventos.map(evento => {
+            const userProfile = userProfiles.find(p => p.productoraId === evento.productoraId);
+            const userRoles = userProfile ? userProfile.roles.map(r => r.role) : [];
+            
+            return {
+                ...evento,
+                userRoles, 
+                userProfile: userProfile ? {
+                    id: userProfile.id,
+                    qrCode: userProfile.qrCode
+                } : null
+            };
+        });
+
+        const totalPages = Math.ceil(total / parseInt(limit));
+
+        res.json({
+            eventos: eventosWithRoles,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                totalPages
+            },
+            productoras: userProfiles.map(p => ({
+                id: p.productora.id,
+                name: p.productora.name,
+                code: p.productora.code,
+                roles: p.roles.map(r => r.role)
+            }))
+        });
+
+    } catch (error) {
+        console.error("Error al obtener mis eventos:", error);
+        res.status(500).json({ error: "Error al obtener eventos", details: error.message });
+    }
+}
+
 export const createEvento = async (req, res) => {
     try {
       const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada} = req.body;
