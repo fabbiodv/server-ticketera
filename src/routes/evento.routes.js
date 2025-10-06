@@ -12,9 +12,9 @@ import { authenticateToken } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
+router.get("/:id", getEventoById);
 router.get("/", getAllEventos);
 router.get("/my-eventos", authenticateToken, getMyEventos); 
-router.get("/:id", getEventoById);
 router.get("/productora/:id", getEventosByProductora);
 router.post("/", createEvento);
 router.put("/:id", updateEvento);       
