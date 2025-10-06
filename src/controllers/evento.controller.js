@@ -70,7 +70,7 @@ export const getEventoById = async(req, res) => {
     try{
         const prisma = new PrismaClient();
         const { id } = req.params;
-        const evento = await prisma.evento.findUnique({
+        const evento = await prisma.eventos.findUnique({
             where: { id: Number(id) },
             include: {
                 productora: true,
@@ -83,7 +83,7 @@ export const getEventoById = async(req, res) => {
         res.status(200).json(evento);
     }catch(error){
         // console.error("Error al obtener evento:", error);
-        res.status(500).json({ error: "Error al obtener evento" });
+        res.status(500).json({ error: "Error al obtener evento", details: error.message });
     }
 }
 
@@ -107,9 +107,127 @@ export const getEventosByProductora = async (req, res) => {
     }
 }
 
+export const getMyEventos = async (req, res) => {
+    try {
+        const userId = req.user.userId; 
+        const {
+            page = 1, limit = 10, sortBy = 'date', sortOrder = 'asc',
+            name, location, status, dateFrom, dateTo
+        } = req.query;
+
+        const userProfiles = await prisma.profile.findMany({
+            where: { 
+                userId: userId,
+                roles: {
+                    some: {
+                        role: {
+                            in: ['OWNER', 'LIDER', 'PUBLICA', 'SUBPUBLICA', 'ORGANIZADOR']
+                        }
+                    }
+                }
+            },
+            include: {
+                productora: true,
+                roles: true
+            }
+        });
+
+        if (userProfiles.length === 0) {
+            return res.json({
+                eventos: [],
+                pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
+                message: "No tienes permisos de gestión en ninguna productora"
+            });
+        }
+
+        const productoraIds = userProfiles.map(profile => profile.productoraId);
+
+        const whereConditions = {
+            productoraId: { in: productoraIds },
+            ...(name && { name: { contains: name, mode: 'insensitive' } }),
+            ...(location && { location: { contains: location, mode: 'insensitive' } }),
+            ...(status && { status }),
+            ...(dateFrom && { date: { gte: new Date(dateFrom) } }),
+            ...(dateTo && { date: { lte: new Date(dateTo) } })
+        };
+
+        const total = await prisma.eventos.count({ where: whereConditions });
+
+        const eventos = await prisma.eventos.findMany({
+            where: whereConditions,
+            include: {
+                productora: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        email: true
+                    }
+                },
+                tipoEntrada: {
+                    select: {
+                        id: true,
+                        nombre: true,
+                        precio: true,
+                        totalEntradas: true,
+                        estado: true,
+                        disponible: true
+                    }
+                },
+                _count: {
+                    select: {
+                        Entrada: true 
+                    }
+                }
+            },
+            orderBy: {
+                [sortBy]: sortOrder
+            },
+            skip: (parseInt(page) - 1) * parseInt(limit),
+            take: parseInt(limit)
+        });
+
+        const eventosWithRoles = eventos.map(evento => {
+            const userProfile = userProfiles.find(p => p.productoraId === evento.productoraId);
+            const userRoles = userProfile ? userProfile.roles.map(r => r.role) : [];
+            
+            return {
+                ...evento,
+                userRoles, 
+                userProfile: userProfile ? {
+                    id: userProfile.id,
+                    qrCode: userProfile.qrCode
+                } : null
+            };
+        });
+
+        const totalPages = Math.ceil(total / parseInt(limit));
+
+        res.json({
+            eventos: eventosWithRoles,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                totalPages
+            },
+            productoras: userProfiles.map(p => ({
+                id: p.productora.id,
+                name: p.productora.name,
+                code: p.productora.code,
+                roles: p.roles.map(r => r.role)
+            }))
+        });
+
+    } catch (error) {
+        console.error("Error al obtener mis eventos:", error);
+        res.status(500).json({ error: "Error al obtener eventos", details: error.message });
+    }
+}
+
 export const createEvento = async (req, res) => {
     try {
-      const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada} = req.body;
+      const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada, status = 'PROGRAMADO'} = req.body;
   
       // Validación de campos requeridos
       if (!name || !date || !startTime || !endTime || !location || !productoraId  || !capacity ) {
@@ -128,6 +246,7 @@ export const createEvento = async (req, res) => {
           location,
           capacity: Number(capacity),
           productoraId: Number(productoraId),
+          status,
           ...(Array.isArray(tiposEntrada) && tiposEntrada.length > 0 && {
             tipoEntrada: {
               create: tiposEntrada.map(tipo => ({
@@ -162,7 +281,7 @@ export const createEvento = async (req, res) => {
 export const updateEvento = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, date, startTime, endTime, description, location, capacity, productoraId } = req.body;
+        const { name, date, startTime, endTime, description, location, capacity, productoraId, status } = req.body;
   
         // Validación de campos requeridos
         if (!name || !date || !startTime || !endTime || !location || !capacity || !productoraId) {
@@ -181,7 +300,8 @@ export const updateEvento = async (req, res) => {
             description,
             location,
             capacity: Number(capacity),
-            productoraId: Number(productoraId)
+            productoraId: Number(productoraId),
+            ...(status && { status })
           },
           include: {
             productora: true,

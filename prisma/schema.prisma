@@ -30,6 +30,16 @@ enum estadoProductora {
   inactiva
 }
 
+enum estadoEvento {
+  ACTIVO 
+  INACTIVO
+  REPROGRAMADO
+  CASI_AGOTADO
+  AGOTADO
+  CANCELADO
+  FINALIZADO
+}
+
 enum estadoPago {
   PENDING
   SUCCESS
@@ -119,6 +129,7 @@ model Eventos {
   date         DateTime
   startTime    DateTime
   endTime      DateTime
+  status       estadoEvento  @default(ACTIVO)
   description  String
   location     String
   capacity     Int

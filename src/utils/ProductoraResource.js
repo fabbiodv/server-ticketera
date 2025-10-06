@@ -1,6 +1,6 @@
 export default function ProductoraResource(productora) {
-  const ownerProfile = productora.profiles.find(
-    p => p.roles.some(r => r.role === 'OWNER')
+  const ownerProfile = productora.profiles?.find(
+    p => p.roles?.some(r => r.role === 'OWNER')
   );
   const owner = ownerProfile ? ownerProfile.user : null;
 

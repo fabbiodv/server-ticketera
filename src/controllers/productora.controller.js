@@ -50,16 +50,17 @@ export const getAllProductoras = async (req, res) => {
 export const getProductoraByCode = async (req, res) => {
   try {
     const { code } = req.params;
-    const { includeProfiles, includeEvents } = req.query;
+    const { includeEvents } = req.query;
     
     const productora = await prisma.productora.findUnique({
       where: { code },
       include: {
-        ...(includeProfiles === 'true' && {
-          profiles: {
-            include: { user: true, roles: true }
+        profiles: {
+          include: { 
+            user: true, 
+            roles: true 
           }
-        }),
+        },
         ...(includeEvents === 'true' && {
           eventos: {
             include: { tipoEntrada: true }
@@ -71,8 +72,13 @@ export const getProductoraByCode = async (req, res) => {
     if (!productora) {
       return res.status(404).json({ error: "Productora no encontrada" });
     }
+    const formattedProductora = ProductoraResource(productora);
+
+    if (includeEvents === 'true' && productora.eventos) {
+      formattedProductora.eventos = productora.eventos;
+    }
     
-    res.json(ProductoraResource(productora));
+    res.json(formattedProductora);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener productora: " + error.message });
   }
