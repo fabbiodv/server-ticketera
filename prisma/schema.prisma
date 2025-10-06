@@ -16,7 +16,7 @@ enum Role {
   ORGANIZADOR // Administrador (publica) ignorar
   LIDER // Organizador
   SUBPUBLICA
-  PUBLICA // Relaciones públicas
+  PUBLICA //Relaciones  públicas
 }
 
 enum estadoTipoEntrada {
