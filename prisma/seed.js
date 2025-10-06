@@ -17,6 +17,20 @@ const generateEntradaQR = () => {
 async function main() {
   console.log('🌱 Iniciando seeder...');
 
+  console.log('🧹 Limpiando base de datos...');
+  
+  await prisma.entrada.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.tipoEntrada.deleteMany({});
+  await prisma.eventos.deleteMany({});
+  await prisma.roleAsignee.deleteMany({});
+  await prisma.profile.deleteMany({});
+  await prisma.productora.deleteMany({});
+  await prisma.session.deleteMany({});
+  await prisma.user.deleteMany({});
+  
+  console.log('✅ Base de datos limpia');
+
   // 1. Crear usuarios
   console.log('👤 Creando usuarios...');
   
