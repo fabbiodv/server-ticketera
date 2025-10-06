@@ -227,7 +227,7 @@ export const getMyEventos = async (req, res) => {
 
 export const createEvento = async (req, res) => {
     try {
-      const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada} = req.body;
+      const { name,date,startTime,endTime,description,location,capacity, productoraId,tiposEntrada, status = 'PROGRAMADO'} = req.body;
   
       // Validación de campos requeridos
       if (!name || !date || !startTime || !endTime || !location || !productoraId  || !capacity ) {
@@ -246,6 +246,7 @@ export const createEvento = async (req, res) => {
           location,
           capacity: Number(capacity),
           productoraId: Number(productoraId),
+          status,
           ...(Array.isArray(tiposEntrada) && tiposEntrada.length > 0 && {
             tipoEntrada: {
               create: tiposEntrada.map(tipo => ({
@@ -280,7 +281,7 @@ export const createEvento = async (req, res) => {
 export const updateEvento = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, date, startTime, endTime, description, location, capacity, productoraId } = req.body;
+        const { name, date, startTime, endTime, description, location, capacity, productoraId, status } = req.body;
   
         // Validación de campos requeridos
         if (!name || !date || !startTime || !endTime || !location || !capacity || !productoraId) {
@@ -299,7 +300,8 @@ export const updateEvento = async (req, res) => {
             description,
             location,
             capacity: Number(capacity),
-            productoraId: Number(productoraId)
+            productoraId: Number(productoraId),
+            ...(status && { status })
           },
           include: {
             productora: true,
