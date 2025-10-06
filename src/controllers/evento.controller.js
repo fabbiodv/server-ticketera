@@ -122,12 +122,10 @@ export const getEventosByProductora = async (req, res) => {
     res.status(200).json(eventos);
   } catch (error) {
     // console.error("Error al obtener eventos por productora:", error);
-    res
-      .status(500)
-      .json({
-        error: "Error al obtener eventos por productora",
-        details: error.message,
-      });
+    res.status(500).json({
+      error: "Error al obtener eventos por productora",
+      details: error.message,
+    });
   }
 };
 
@@ -400,14 +398,27 @@ export const updateEvento = async (req, res) => {
 };
 export const deleteEvento = async (req, res) => {
   try {
-    const prisma = new PrismaClient();
     const { id } = req.params;
-    const evento = await prisma.evento.delete({
-      where: { id: Number(id) },
+    const eventoId = Number(id);
+
+    // Eliminar en cascada: primero las entradas, luego los tipos de entrada, y finalmente el evento
+    await prisma.entrada.deleteMany({
+      where: { eventoId },
     });
+
+    await prisma.tipoEntrada.deleteMany({
+      where: { eventoId },
+    });
+
+    const evento = await prisma.eventos.delete({
+      where: { id: eventoId },
+    });
+
     res.status(200).json({ message: "Evento eliminado exitosamente", evento });
   } catch (error) {
     console.error("Error al eliminar evento:", error);
-    res.status(500).json({ error: "Error al eliminar evento" });
+    res
+      .status(500)
+      .json({ error: "Error al eliminar evento", details: error.message });
   }
 };
