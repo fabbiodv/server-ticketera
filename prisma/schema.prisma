@@ -171,7 +171,7 @@ model Entrada {
   estado        EstadoEntrada  @default(DISPONIBLE)
   tipoEntradaId Int
   buyerId       Int?           // Nullable para entradas no vendidas aún
-  sellerId      Int
+  sellerId      Int?          
   reservadaHasta DateTime?     // Tiempo límite de reserva temporal
   
   createdAt     DateTime       @default(now())
@@ -181,7 +181,7 @@ model Entrada {
   evento        Eventos     @relation(fields: [eventoId], references: [id])
   tipoEntrada   TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
   buyer         User?       @relation("BuyerRelation", fields: [buyerId], references: [id])
-  seller        User        @relation("SellerRelation", fields: [sellerId], references: [id])
+  seller        User?      @relation("SellerRelation", fields: [sellerId], references: [id])
   payment       Payment?
 }
 

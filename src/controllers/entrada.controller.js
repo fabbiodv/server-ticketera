@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client/extension";
 import prisma from '../config/database.js';
+import crypto from 'crypto';
 
+const generateEntradaQR = () => {
+  return crypto.randomBytes(16).toString('hex').toUpperCase();
+};
 export const getAllEntradas = async (req, res) => {
   try {
     const {
@@ -89,13 +93,13 @@ export const getEntradaById = async (req, res) => {
 };
 export const createEntrada = async (req, res) => {
   try {
-    const { nombre, tipoEntradaId, eventoId } = req.body;
-    if (!nombre || !tipoEntradaId || !eventoId ) {
+    const { nombre, tipoEntradaId, eventoId, sellerId } = req.body;
+    
+    if (!nombre || !tipoEntradaId || !eventoId) {
       return res.status(400).json({
         error: "Todos los campos son obligatorios: nombre, tipoEntradaId, eventoId"
       });
     }
-
     const eventoExiste = await prisma.eventos.findUnique({
       where: { id: Number(eventoId) }
     });
@@ -108,19 +112,63 @@ export const createEntrada = async (req, res) => {
     const tipoEntradaExiste = await prisma.tipoEntrada.findUnique({
       where: { id: Number(tipoEntradaId) }
     });
+
     if (!tipoEntradaExiste) {
       return res.status(404).json({
         error: "El tipo de entrada especificado no existe"
       });
     }
-    const entrada = await prisma.entrada.create({
-      data: {
-        nombre,
-        tipoEntradaId: Number(tipoEntradaId),
-        eventoId: Number(eventoId),
+    if (sellerId) {
+      const sellerExiste = await prisma.user.findUnique({
+        where: { id: Number(sellerId) }
+      });
+
+      if (!sellerExiste) {
+        return res.status(404).json({
+          error: "El vendedor especificado no existe"
+        });
+      }
+    }
+    const createData = {
+      qrCode: generateEntradaQR(),
+      escaneado: false,
+      evento: {
+        connect: { id: Number(eventoId) }
       },
+      tipoEntrada: {
+        connect: { id: Number(tipoEntradaId) }
+      }
+    };
+    if (sellerId) {
+      createData.seller = {
+        connect: { id: Number(sellerId) }
+      };
+    }
+    const entrada = await prisma.entrada.create({
+      data: createData,
       include: {
-        evento: true
+        evento: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            location: true
+          }
+        },
+        tipoEntrada: {
+          select: {
+            id: true,
+            nombre: true,
+            precio: true
+          }
+        },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -136,17 +184,15 @@ export const createEntrada = async (req, res) => {
       details: error.message
     });
   }
-}
-
+};
 export const deleteEntrada = async (req, res) => {
   try {
-    const prisma = new PrismaClient();
     const { id } = req.params;
     const entrada = await prisma.entrada.delete({
       where: { id: Number(id) },
     });
     res.status(200).json({ message: "Entrada eliminada exitosamente", entrada });
   } catch (error) {
-    res.status(500).json({ error: "Error al eliminar entrada" });
+    res.status(500).json({ error: "Error al eliminar entrada" + error.message });
   }
 }   
