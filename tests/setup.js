@@ -1,10 +1,12 @@
 import { beforeAll, afterAll, beforeEach } from 'vitest'
+import dotenv from 'dotenv'
+import path from 'path'
 
+// Cargar variables de entorno específicas para testing
+dotenv.config({ path: path.join(process.cwd(), '.env.test') })
+
+// Asegurar que NODE_ENV esté en test
 process.env.NODE_ENV = 'test'
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key'
-process.env.REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'test-refresh-secret-key'
-process.env.BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
-process.env.LOCAL_FRONTEND_URL = process.env.LOCAL_FRONTEND_URL || 'http://localhost:3001'
 
 let testPrismaInstance = null
 
