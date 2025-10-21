@@ -11,16 +11,16 @@ jobs:
     steps:
     - name: Setup SSH Key
       run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
+        mkdir -p /home/runner/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > /home/runner/.ssh/deploy_key
+        chmod 600 /home/runner/.ssh/deploy_key
 
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
-        key_path: ~/.ssh/deploy_key
+        key_path: /home/runner/.ssh/deploy_key
         port: 22
         script: |
           cd /root/server-ticketera
