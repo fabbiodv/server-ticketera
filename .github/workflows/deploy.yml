@@ -9,14 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Setup SSH Key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
+        key_path: ~/.ssh/deploy_key
         port: 22
-        debug: true
         script: |
           cd /root/server-ticketera
           git pull origin main
