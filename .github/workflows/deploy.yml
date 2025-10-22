@@ -23,6 +23,8 @@ jobs:
     - name: Deploy to VPS
       run: |
         ssh -i ${{ github.workspace }}/../private.key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           cd /root/server-ticketera
           git pull origin main
           npm install
