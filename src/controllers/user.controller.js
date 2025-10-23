@@ -2,42 +2,70 @@ import bcrypt from "bcrypt";
 import prisma from "../config/database.js";
 
 
-export const getUsers = async (req, res) => {
+const getUsers = async (req, res) => {
   try {
-    const { role, productoraId, ...userFilters } = req.query;
-    const where = {
-      ...Object.entries(userFilters).reduce((acc, [key, value]) => {
-        acc[key] = { contains: value, mode: 'insensitive' }; 
-        return acc;
-      }, {}),
-    };
-    if (productoraId || role) {
-      where.profiles = {
-        some: {
-          ...(productoraId && { productoraId: Number(productoraId) }),
-          ...(role && { roles: { some: { role } } })
-        }
-      };
-    }
+    const { 
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      name, email, status, role,
+      ...otherFilters 
+    } = req.query;
 
     const users = await prisma.user.findMany({
-      where,
-      include: {
+      where: {
+        ...(name && { name: { contains: name, mode: 'insensitive' } }),
+        ...(email && { email: { contains: email, mode: 'insensitive' } }),
+        ...(status && { status }),
+        ...(role && { 
+          profiles: { 
+            some: { 
+              roles: { 
+                some: { role } 
+              } 
+            } 
+          } 
+        }),
+        
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        lastName: true,
+        phone: true,
+        dni: true,
+        status: true,
+        createdAt: true,
+        lastLogin: true,
         profiles: {
-          include: { roles: true }
+          include: {
+            productora: { select: { name: true, code: true } },
+            roles: true
+          }
         }
       },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
     });
 
     res.json(users);
   } catch (error) {
-    console.error("Error al obtener usuarios:", error);
-    res.status(500).json({ error: "Error al obtener usuarios", details: error.message });
+    res.status(500).json({ error: 'Error al obtener usuarios: ' + error.message });
   }
 };
 
 
-export const createUser = async (req, res) => {
+
+
+const createUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -61,7 +89,7 @@ export const createUser = async (req, res) => {
   }
 };
 
-export const getUsersByProductoraRole = async (req, res) => {
+const getUsersByProductoraRole = async (req, res) => {
   try {
     const { role, productoraId } = req.query;
 
@@ -83,3 +111,37 @@ export const getUsersByProductoraRole = async (req, res) => {
   }
 };
 
+const updateUser = async(req,res) => {
+  try{
+    const {id} = req.params;
+    const {name, email, password} = req.body;
+    const updatedData = {};
+    if(name) updatedData.name = name;
+    if(email) updatedData.email = email;
+    if(password) updatedData.password = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.update({
+      where:{id: Number(id)},
+      data: updatedData
+    });
+    res.json({message: "Usuario actualizado", user});
+  }catch(error){
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).json({ error: "Error al actualizar usuario", details: error.message });
+  }
+}
+
+const deleteUser = async(req,res) => {
+  try{
+    const {id} = req.params;
+    const user = await prisma.user.delete({
+      where:{id: Number(id)}
+    });
+    res.json({message: "Usuario eliminado", user});
+  }catch(error){
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).json({ error: "Error al eliminar usuario", details: error.message });
+  }
+}
+
+export { getUsers, createUser, getUsersByProductoraRole, updateUser, deleteUser };

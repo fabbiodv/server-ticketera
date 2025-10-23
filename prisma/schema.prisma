@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -15,10 +13,10 @@ generator client {
 enum Role {
   SUPERADMIN // Super administrador (admin)
   OWNER // Creador de la productora (líder)
-  ORGANIZADOR // Administrador (publica) ignorar 
+  ORGANIZADOR // Administrador (publica) ignorar
   LIDER // Organizador
   SUBPUBLICA
-  PUBLICA // Relaciones públicas
+  PUBLICA //Relaciones  públicas
 }
 
 enum estadoTipoEntrada {
@@ -27,18 +25,19 @@ enum estadoTipoEntrada {
   LIMITADA
 }
 
-/**
- * TO-DO:
- * - Crear enum publica, subpublica y lider  -> para vendedor
- * - Crear un modelo de eventos
- * - Crear relacion entre eventos y productoras ->listo
- * - Crear relacion entre eventos y usuarios -> se hace tipo entrada y las entradas se vinculan al publica/sub/lider
- * - Armar los endpoints para los eventos en el postman
- * - Agregar api a los endpoints api/.....
- */
 enum estadoProductora {
   activa
   inactiva
+}
+
+enum estadoEvento {
+  ACTIVO 
+  INACTIVO
+  REPROGRAMADO
+  CASI_AGOTADO
+  AGOTADO
+  CANCELADO
+  FINALIZADO
 }
 
 enum estadoPago {
@@ -47,44 +46,103 @@ enum estadoPago {
   FAILURE
 }
 
+enum EstadoEntrada {
+  DISPONIBLE     // Disponible para compra
+  RESERVADA      // Temporalmente reservada durante checkout
+  VENDIDA        // Pagada y confirmada
+  CANCELADA      // Reserva expirada o pago fallido
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id                Int       @id @default(autoincrement())
+  name              String?
+  email             String    @unique
+  password          String?
+  lastName          String?
+  phone             String?
+  dni               String?   @unique
+  status            UserStatus @default(PENDING_VERIFICATION)
+  // JWT y Magic Link tokens
+  magicLinkToken    String?   @unique
+  tokenExpiry       DateTime?
+  lastLogin         DateTime?
+  // MercadoPago tokens
+  mpAccessToken     String?
+  mpUserId          String?
+  mpRefreshToken    String?
+  mpTokenExpiresAt  DateTime?
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  
+  profiles          Profile[]
+  Eventos           Eventos[]
+  payments          Payment[]
+  entradasCompradas Entrada[] @relation("BuyerRelation")
+  entradasVendidas  Entrada[] @relation("SellerRelation")
+  sessions          Session[]
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  refreshToken String   @unique
+  userAgent    String?
+  ipAddress    String?
+  isValid      Boolean  @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+model Productora {
+  id              Int               @id @default(autoincrement())
+  name            String
+  email           String            @unique
+  code            String            @unique
+  totalEvents     Int               @default(0)
+  activeEvents    Int               @default(0)
+  totalOrganizers Int               @default(0)
+  totalRevenue    Float             @default(0)
+  status          estadoProductora? @default(activa)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  profiles        Profile[]
+  eventos         Eventos[]
+}
+
 model Eventos {
   id           Int           @id @default(autoincrement())
   name         String
   date         DateTime
   startTime    DateTime
   endTime      DateTime
+  status       estadoEvento  @default(ACTIVO)
   description  String
   location     String
   capacity     Int
   productoraId Int
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  
   usuarios     User[]
   productora   Productora    @relation(fields: [productoraId], references: [id])
   tipoEntrada  TipoEntrada[]
-}
-
-model Entrada {
-  id            Int         @id @default(autoincrement())
-  eventoId      Int
-  escaneado     Boolean     @default(false)
-  payment       Payment?
-  tipoEntradaId Int
-  tipoEntrada   TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
-  buyerId       Int
-  sellerId      Int
-  buyer         User        @relation("BuyerRelation", fields: [buyerId], references: [id])
-  seller        User        @relation("SellerRelation", fields: [sellerId], references: [id])
-}
-
-model Payment {
-  id        Int        @id @default(autoincrement())
-  userId    Int
-  entradaId Int        @unique
-  amount    Float
-  status    estadoPago @default(PENDING)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  user      User       @relation(fields: [userId], references: [id])
-  entrada   Entrada    @relation(fields: [entradaId], references: [id])
+  Entrada      Entrada[]     // Agregar relación faltante
 }
 
 model TipoEntrada {
@@ -96,40 +154,78 @@ model TipoEntrada {
   maximoEntradasPorPersona Int
   estado                   estadoTipoEntrada @default(DISPONIBLE)
   disponible               Boolean           @default(true)
+  
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  
+  
   evento                   Eventos           @relation(fields: [eventoId], references: [id])
-  entradas                 Entrada[]
+  entradas                 Entrada[]         // Cambiar nombre para consistencia
 }
 
-model Productora {
-  id              Int               @id @default(autoincrement())
-  name            String
-  email           String            @unique
-  code            String            @unique
-  profiles        Profile[]
-  totalEvents     Int               @default(0)
-  activeEvents    Int               @default(0)
-  totalOrganizers Int               @default(0)
-  totalRevenue    Float             @default(0)
-  status          estadoProductora? @default(activa)
-  eventos         Eventos[]
+model Entrada {
+  id            Int            @id @default(autoincrement())
+  eventoId      Int
+  qrCode        String         @unique
+  escaneado     Boolean        @default(false)
+  estado        EstadoEntrada  @default(DISPONIBLE)
+  tipoEntradaId Int
+  buyerId       Int?           // Nullable para entradas no vendidas aún
+  sellerId      Int?          
+  reservadaHasta DateTime?     // Tiempo límite de reserva temporal
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  
+  evento        Eventos     @relation(fields: [eventoId], references: [id])
+  tipoEntrada   TipoEntrada @relation(fields: [tipoEntradaId], references: [id])
+  buyer         User?       @relation("BuyerRelation", fields: [buyerId], references: [id])
+  seller        User?      @relation("SellerRelation", fields: [sellerId], references: [id])
+  payment       Payment?
 }
 
-model User {
-  id                Int       @id @default(autoincrement())
-  name              String
-  email             String    @unique
-  password          String
-  profiles          Profile[]
-  Eventos           Eventos[]
-  payments          Payment[]
-  entradasCompradas Entrada[] @relation("BuyerRelation")
-  entradasVendidas  Entrada[] @relation("SellerRelation")
+model Payment {
+  id              Int        @id @default(autoincrement())
+  userId          Int?       // Nullable para compras sin registro
+  entradaId       Int?       @unique // Nullable, usaremos metadata para múltiples entradas
+  amount          Float
+  status          estadoPago @default(PENDING)
+  paymentMethod   String?    // 'MERCADOPAGO', 'CASH', etc.
+  
+  // MercadoPago fields
+  mpPreferenceId  String?    // ID de la preferencia de MP
+  mpPaymentId     String?    // ID del pago de MP
+  mpInitPoint     String?    // Link de pago de MP
+  
+  // Metadata para información adicional
+  metadata        String?    @db.Text // JSON con entradaIds, buyerInfo, etc.
+  failureReason   String?    // Motivo del fallo si aplica
+  
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  
+  user            User?      @relation(fields: [userId], references: [id])
+  entrada         Entrada?   @relation(fields: [entradaId], references: [id])
 }
+
+
+
+
+
+
 
 model Profile {
   id           Int           @id @default(autoincrement())
   userId       Int
   productoraId Int
+  qrCode       String?       @unique
+  
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  
   user         User          @relation(fields: [userId], references: [id])
   productora   Productora    @relation(fields: [productoraId], references: [id])
   roles        RoleAsignee[]
@@ -138,49 +234,12 @@ model Profile {
 model RoleAsignee {
   profileId Int
   role      Role
-  profile   Profile @relation(fields: [profileId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  
+  profile   Profile  @relation(fields: [profileId], references: [id])
 
-  @@id([profileId, role]) // Clave compuesta
+  @@id([profileId, role])
 }
-
-/**
- * AUTH
- * model User {
- * id               Int        @id @default(autoincrement())
- * email            String     @unique
- * password         String? // Campo nuevo para almacenar la contraseña hasheada
- * name             String?
- * lastName         String?
- * phone            String?
- * dni              String?    @unique
- * status           UserStatus @default(PENDING_VERIFICATION)
- * role             Role       @default(USER)
- * magicLinkToken   String?    @unique
- * tokenExpiry      DateTime?
- * lastLogin        DateTime?
- * createdAt        DateTime   @default(now())
- * updatedAt        DateTime   @updatedAt
- * mpAccessToken    String?
- * mpUserId         String?
- * mpRefreshToken   String?
- * mpTokenExpiresAt DateTime?
- * // Relaciones
- * sessions      Session[]
- * Booking       Booking[]
- * sportsCenters SportsCenter[]
- * centerAdmins  CenterAdmin[]
- * }
- * model Session {
- * id           Int      @id @default(autoincrement())
- * userId       Int
- * user         User     @relation(fields: [userId], references: [id])
- * refreshToken String   @unique
- * userAgent    String? // Para guardar información del dispositivo
- * ipAddress    String? // Para seguridad adicional
- * isValid      Boolean  @default(true)
- * expiresAt    DateTime
- * createdAt    DateTime @default(now())
- * updatedAt    DateTime @updatedAt
- * @@index([userId])
- * }
- */

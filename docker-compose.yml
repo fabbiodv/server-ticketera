@@ -1,7 +1,4 @@
-version: '3.7'
-
 services:
-
   db:
     container_name: pg-db-ticketera
     image: postgres:16-alpine
@@ -15,7 +12,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "5433:5432"
+      - "5439:5432"
     volumes:
       - postgres_data_ticketera:/var/lib/postgresql/data
     healthcheck:
@@ -53,30 +50,33 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - PORT=${PORT}
       - NODE_ENV=${NODE_ENV}
+      # Agregar variables JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - BACKEND_URL=${BACKEND_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
 
-  admin-frontend:
-    container_name: ticketera-admin-frontend
-    build:
-      context: ../admin-ticketera
-      dockerfile: admin.dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=https://api.partyckets.com.ar
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.partyckets.com.ar
-    ports:
-      - "3002:3000"
-    env_file:
-      - ../admin-ticketera/.env
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - ticketera-network
+  # admin-frontend:
+  #   container_name: ticketera-admin-frontend
+  #   build:
+  #     context: ../admin-ticketera
+  #     dockerfile: admin.dockerfile
+  #     args:
+  #       - NEXT_PUBLIC_API_URL=https://api.partyckets.com.ar
+  #   environment:
+  #     - NEXT_PUBLIC_API_URL=https://api.partyckets.com.ar
+  #   ports:
+  #     - "3002:3000"
+  #   env_file:
+  #     - ../admin-ticketera/.env
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   networks:
+  #     - ticketera-network
 
 networks:
   ticketera-network:
-    driver: bridge
-
 
 volumes:
   postgres_data_ticketera:

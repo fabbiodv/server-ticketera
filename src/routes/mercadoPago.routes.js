@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import webhookController from '../controllers/webhook.controller.js';
-
+import * as webhookController from '../controllers/webHook.controller.js';
 const router = Router();
 
 router.post('/mercadopago', webhookController.webhookMercadoPago);

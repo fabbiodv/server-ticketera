@@ -4,7 +4,8 @@
 - npx prisma generate
 - npx prisma db push
 - npx prisma studio
-
+- npm run seed -> ejecuta una ligera migracion
+- npm run list-routes -> permite ver todos los endpoints
 ## Docker en development para la base de datos
 sudo docker-compose -f docker-compose.dev.yml up -d
 

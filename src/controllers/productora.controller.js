@@ -5,19 +5,40 @@ import ProductoraResource from '../utils/ProductoraResource.js';
 
 export const getAllProductoras = async (req, res) => {
   try {
+    const { 
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      name, email, code, status,
+      ...otherFilters 
+    } = req.query;
+    
     const productoras = await prisma.productora.findMany({
+      where: {
+        // Filtros opcionales - solo se incluyen si existen
+        ...(name && { name: { contains: name, mode: 'insensitive' } }),
+        ...(email && { email: { contains: email, mode: 'insensitive' } }),
+        ...(code && { code: { contains: code, mode: 'insensitive' } }),
+        ...(status && { status }),
+        
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
       include: { 
         profiles: { 
-          include: { 
-            user: true,
-            roles: true
-          } 
+          include: { user: true, roles: true } 
         } 
-      }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
     });
     
     const data = productoras.map(ProductoraResource);
-
     res.json(data);
   } catch (error) {
     res.status(500).json({ 
@@ -26,55 +47,40 @@ export const getAllProductoras = async (req, res) => {
   }
 };
 
-
 export const getProductoraByCode = async (req, res) => {
   try {
     const { code } = req.params;
-    console.log("Código recibido:", code);
-
+    const { includeEvents } = req.query;
+    
     const productora = await prisma.productora.findUnique({
-      where: { code: String(code) },
+      where: { code },
       include: {
-        profiles: { 
+        profiles: {
           include: { 
             user: true, 
             roles: true 
-          } 
+          }
         },
-        eventos: true, 
-      },
+        ...(includeEvents === 'true' && {
+          eventos: {
+            include: { tipoEntrada: true }
+          }
+        })
+      }
     });
-
+    
     if (!productora) {
       return res.status(404).json({ error: "Productora no encontrada" });
     }
+    const formattedProductora = ProductoraResource(productora);
 
-    const data = ProductoraResource(productora);
-    data.eventos = productora.eventos;
-    data.totalEvents = productora.eventos.length;
-    data.activeEvents = productora.eventos.filter(e => e.estado === 'ACTIVO').length;
-
-    // Buscamos perfiles que tengan asignado el rol 'ORGANIZER' en roleAsignees
-    const organizadores = productora.profiles
-      .filter(p => p.roles.some(ra => ra.role === 'ORGANIZADOR'))
-      .map(p => p.user);
-
-    data.totalOrganizers = organizadores.length;
-    data.organizadores = organizadores.map(user => ({
-      id: `O-${user.id.toString().padStart(4, "0")}`,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: "Organizador",
-      initials: user.name.split(" ").map(n => n[0]).join(""),
-      status: "Activo",
-    }));
-
-    res.json(data);
+    if (includeEvents === 'true' && productora.eventos) {
+      formattedProductora.eventos = productora.eventos;
+    }
+    
+    res.json(formattedProductora);
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Error al buscar la productora: " + error.message });
+    res.status(500).json({ error: "Error al obtener productora: " + error.message });
   }
 };
 
