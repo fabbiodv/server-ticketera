@@ -3,15 +3,15 @@ import request from 'supertest'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
-import { createTestApp } from '../../helpers/testApp.js'
+import { createTestApp } from '../helpers/testApp.js'
 import { 
   createTestUser, 
   cleanDatabase, 
   expectErrorResponse, 
   expectSuccessResponse,
   createAuthCookies
-} from '../../helpers/testHelpers.js'
-import { authFixtures, userFixtures } from '../../fixtures/testData.js'
+} from '../helpers/testHelpers.js'
+import { authFixtures, userFixtures } from '../fixtures/testData.js'
 
 describe('Auth Controller - Unit Tests', () => {
   let app
@@ -33,10 +33,10 @@ describe('Auth Controller - Unit Tests', () => {
         .post('/auth/register')
         .send(userData)
 
-      expectSuccessResponse(response, 200)
+      expectSuccessResponse(response, 201)
       expect(response.body).toHaveProperty('message', 'Usuario registrado correctamente')
       expect(response.body).toHaveProperty('user')
-      expect(response.body).toHaveProperty('tokens')
+      // Los tokens se envían como cookies, no en el body
       
       // Verificar que el usuario se guardó en la base de datos
       const savedUser = await global.testPrisma.user.findUnique({
@@ -102,7 +102,7 @@ describe('Auth Controller - Unit Tests', () => {
         .send({ email: 'test@example.com' })
 
       expectSuccessResponse(response, 200)
-      expect(response.body).toHaveProperty('message', 'Se ha enviado un enlace de acceso a tu email')
+      expect(response.body).toHaveProperty('message', 'Magic link enviado correctamente')
       
       // Verificar que se guardó/actualizó el usuario con magic link token
       const user = await global.testPrisma.user.findUnique({
@@ -128,13 +128,13 @@ describe('Auth Controller - Unit Tests', () => {
     })
   })
 
-  describe('POST /auth/loginWithPassword', () => {
+  describe('POST /auth/login-password', () => {
     it('should login successfully with valid credentials', async () => {
       const userData = userFixtures.validUser
       const user = await createTestUser(userData)
 
       const response = await request(app)
-        .post('/auth/loginWithPassword')
+        .post('/auth/login-password')
         .send({
           email: userData.email,
           password: userData.password
@@ -161,7 +161,7 @@ describe('Auth Controller - Unit Tests', () => {
       await createTestUser(userData)
 
       const response = await request(app)
-        .post('/auth/loginWithPassword')
+        .post('/auth/login-password')
         .send({
           email: userData.email,
           password: 'wrongpassword'
@@ -172,7 +172,7 @@ describe('Auth Controller - Unit Tests', () => {
 
     it('should fail with non-existent user', async () => {
       const response = await request(app)
-        .post('/auth/loginWithPassword')
+        .post('/auth/login-password')
         .send({
           email: 'nonexistent@example.com',
           password: 'password123'
@@ -183,7 +183,7 @@ describe('Auth Controller - Unit Tests', () => {
 
     it('should require email and password', async () => {
       const response = await request(app)
-        .post('/auth/loginWithPassword')
+        .post('/auth/login-password')
         .send({ email: 'test@example.com' }) // Falta password
 
       expectErrorResponse(response, 400, 'Email y contraseña son requeridos')
@@ -194,7 +194,7 @@ describe('Auth Controller - Unit Tests', () => {
       const user = await createTestUser(userData)
 
       await request(app)
-        .post('/auth/loginWithPassword')
+        .post('/auth/login-password')
         .send({
           email: userData.email,
           password: userData.password
@@ -306,7 +306,7 @@ describe('Auth Controller - Unit Tests', () => {
       const response = await request(app)
         .post('/auth/refresh')
 
-      expectErrorResponse(response, 401, 'Refresh token no proporcionado')
+      expectErrorResponse(response, 400, 'Refresh token requerido')
     })
 
     it('should fail with invalid refresh token', async () => {

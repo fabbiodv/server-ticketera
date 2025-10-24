@@ -66,23 +66,24 @@ export const authenticatedRequest = (app, userId, role = 'USER') => {
  * Helper para limpiar la base de datos entre tests
  */
 export const cleanDatabase = async () => {
-  const tableNames = [
-    'Session',
-    'User',
-    'Evento',
-    'TipoEntrada',
-    'Entrada',
-    'Productora',
-    'RoleAsignee'
-  ]
+  if (!global.testPrisma) {
+    console.warn('testPrisma no está disponible para limpieza')
+    return
+  }
 
-  for (const tableName of tableNames) {
-    try {
-      await global.testPrisma[tableName.toLowerCase()].deleteMany({})
-    } catch (error) {
-      // Ignorar errores si la tabla no existe
-      console.warn(`Could not clean table ${tableName}:`, error.message)
-    }
+  try {
+    // Limpiar en orden correcto para evitar problemas de foreign keys
+    await global.testPrisma.roleAsignee.deleteMany({})
+    await global.testPrisma.payment.deleteMany({})
+    await global.testPrisma.entrada.deleteMany({})
+    await global.testPrisma.tipoEntrada.deleteMany({})
+    await global.testPrisma.eventos.deleteMany({})
+    await global.testPrisma.session.deleteMany({})
+    await global.testPrisma.profile.deleteMany({})
+    await global.testPrisma.user.deleteMany({})
+    await global.testPrisma.productora.deleteMany({})
+  } catch (error) {
+    console.warn('Error durante limpieza de base de datos:', error.message)
   }
 }
 

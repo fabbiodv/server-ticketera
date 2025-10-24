@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import request from 'supertest'
 
-import { createTestApp } from '../../helpers/testApp.js'
+import { createTestApp } from '../helpers/testApp.js'
 import { 
   createTestUser, 
   cleanDatabase, 
@@ -9,8 +9,8 @@ import {
   expectSuccessResponse,
   createAuthCookies,
   createTestProductora
-} from '../../helpers/testHelpers.js'
-import { userFixtures } from '../../fixtures/testData.js'
+} from '../helpers/testHelpers.js'
+import { userFixtures } from '../fixtures/testData.js'
 
 describe('User Controller - Unit Tests', () => {
   let app
