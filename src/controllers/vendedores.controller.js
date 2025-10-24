@@ -11,10 +11,8 @@ export const getEventosDisponiblesByQR = async (req, res) => {
       ...otherFilters
     } = req.query;
 
-    // Obtener vendedor por QR
     const vendedorProfile = await getVendedorByQR(qrCode);
 
-    // Obtener eventos de la productora del vendedor
     const eventos = await prisma.eventos.findMany({
       where: {
         productoraId: vendedorProfile.productoraId,
@@ -28,7 +26,6 @@ export const getEventosDisponiblesByQR = async (req, res) => {
           }
         }),
 
-        // Filtros adicionales dinámicos
         ...Object.fromEntries(
           Object.entries(otherFilters)
             .filter(([_, value]) => value)
@@ -49,7 +46,6 @@ export const getEventosDisponiblesByQR = async (req, res) => {
       orderBy: { [sortBy]: sortOrder }
     });
 
-    // Filtrar solo eventos con tipos de entrada disponibles
     const eventosConEntradas = eventos.filter(evento => 
       evento.tipoEntrada.length > 0
     );
@@ -63,6 +59,190 @@ export const getEventosDisponiblesByQR = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener eventos: ' + error.message });
+  }
+};
+
+export const getMisVendedores = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const {
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      name, email, hasQR, role, productoraId,
+      ...otherFilters
+    } = req.query;
+
+    const misProductoras = await prisma.profile.findMany({
+      where: {
+        userId: userId,
+        roles: {
+          some: { 
+            role: { in: ['OWNER', 'LIDER'] }
+          }
+        }
+      },
+      select: { productoraId: true }
+    });
+
+    if (misProductoras.length === 0) {
+      return res.status(403).json({ 
+        error: 'No tienes permisos para ver vendedores. Debes ser OWNER o LIDER de al menos una productora.' 
+      });
+    }
+
+    const productoraIds = misProductoras.map(p => p.productoraId);
+
+    const whereClause = {
+      productoraId: { in: productoraIds },
+      roles: {
+        some: {
+          role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER'] }
+        }
+      },
+      ...(productoraId && { productoraId: parseInt(productoraId) }),
+      ...(hasQR === 'true' && { qrCode: { not: null } }),
+      ...(hasQR === 'false' && { qrCode: null }),
+      ...(role && {
+        roles: { some: { role } }
+      }),
+      ...(name && {
+        user: { name: { contains: name, mode: 'insensitive' } }
+      }),
+      ...(email && {
+        user: { email: { contains: email, mode: 'insensitive' } }
+      }),
+
+      // Filtros adicionales dinámicos
+      ...Object.fromEntries(
+        Object.entries(otherFilters)
+          .filter(([_, value]) => value)
+          .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+      )
+    };
+
+    // Obtener vendedores de mis productoras
+    const vendedores = await prisma.profile.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, status: true }
+        },
+        roles: true,
+        productora: {
+          select: { id: true, name: true, code: true }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    // Contar total para paginación
+    const total = await prisma.profile.count({
+      where: whereClause
+    });
+
+    res.json({
+      vendedores,
+      misProductoras: productoraIds,
+      pagination: {
+        total,
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || total,
+        totalPages: limit ? Math.ceil(total / parseInt(limit)) : 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener mis vendedores: ' + error.message });
+  }
+};
+
+export const getAllVendedores = async (req, res) => {
+  try {
+    const {
+      page, limit, sortBy = 'createdAt', sortOrder = 'desc',
+      name, email, hasQR, role, productoraId,
+      ...otherFilters
+    } = req.query;
+
+    const vendedores = await prisma.profile.findMany({
+      where: {
+        roles: {
+          some: {
+            role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER'] }
+          }
+        },
+        ...(productoraId && { productoraId: parseInt(productoraId) }),
+        ...(hasQR === 'true' && { qrCode: { not: null } }),
+        ...(hasQR === 'false' && { qrCode: null }),
+        ...(role && {
+          roles: { some: { role } }
+        }),
+        ...(name && {
+          user: { name: { contains: name, mode: 'insensitive' } }
+        }),
+        ...(email && {
+          user: { email: { contains: email, mode: 'insensitive' } }
+        }),
+
+        // Filtros adicionales dinámicos
+        ...Object.fromEntries(
+          Object.entries(otherFilters)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
+        )
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, status: true }
+        },
+        roles: true,
+        productora: {
+          select: { id: true, name: true, code: true }
+        }
+      },
+      orderBy: { [sortBy]: sortOrder },
+      ...(limit && {
+        skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      })
+    });
+
+    // Contar total para paginación
+    const total = await prisma.profile.count({
+      where: {
+        roles: {
+          some: {
+            role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER'] }
+          }
+        },
+        ...(productoraId && { productoraId: parseInt(productoraId) }),
+        ...(hasQR === 'true' && { qrCode: { not: null } }),
+        ...(hasQR === 'false' && { qrCode: null }),
+        ...(role && {
+          roles: { some: { role } }
+        }),
+        ...(name && {
+          user: { name: { contains: name, mode: 'insensitive' } }
+        }),
+        ...(email && {
+          user: { email: { contains: email, mode: 'insensitive' } }
+        })
+      }
+    });
+
+    res.json({
+      vendedores,
+      pagination: {
+        total,
+        page: parseInt(page) || 1,
+        limit: parseInt(limit) || total,
+        totalPages: limit ? Math.ceil(total / parseInt(limit)) : 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener todos los vendedores: ' + error.message });
   }
 };
 
@@ -223,7 +403,6 @@ export const generatePaymentLinkByVendedorQR = async (req, res) => {
       )
     );
 
-    // Crear pagos
     const payments = await Promise.all(
       entradas.map((entrada) =>
         prisma.payment.create({
@@ -237,7 +416,6 @@ export const generatePaymentLinkByVendedorQR = async (req, res) => {
       )
     );
 
-    // Crear preferencia de MercadoPago
     const preference = new Preference(mercadopago);
     const preferenceData = {
       items: entradas.map((entrada) => ({
