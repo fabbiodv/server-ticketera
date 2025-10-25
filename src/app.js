@@ -13,23 +13,39 @@ import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
 import checkoutRoutes from "./routes/checkout.routes.js";
 import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
 import vendedorRoutes from "./routes/vendedores.routes.js"; // Nueva línea
+import dotenv from "dotenv";
+// Cargar variables de entorno del archivo correspondiente
+const envFile =
+  process.env.NODE_ENV === "test"
+    ? ".env.test"
+    : process.env.NODE_ENV === "production"
+      ? ".env.prod"
+      : ".env";
+dotenv.config({ path: envFile });
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors({
-  origin: [
-    'https://admin.partyckets.com.ar',
-    'https://partyckets.com.ar',
-    'https://admin-ticketera.vercel.app',
-    'http://localhost:3001',  // Para desarrollo local del admin
-    'http://localhost:3002',  // Para desarrollo local del admin
-    'http://localhost:3000'   // Para desarrollo local del frontend público
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
-}))
+app.use(
+  cors({
+    origin: [
+      "https://admin.partyckets.com.ar",
+      "https://partyckets.com.ar",
+      "https://admin-ticketera.vercel.app",
+      "http://localhost:3001", // Para desarrollo local del admin
+      "http://localhost:3002", // Para desarrollo local del admin
+      "http://localhost:3000", // Para desarrollo local del frontend público
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
+  }),
+);
 
 app.use(express.json());
 
