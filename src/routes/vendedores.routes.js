@@ -4,7 +4,8 @@ import {
   generarQRVendedor,
   getVendedoresProductora,
   getAllVendedores,
-  getMisVendedores
+  getMisVendedores,
+  getVendedorCompleto
 } from '../controllers/vendedores.controller.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 
@@ -15,8 +16,9 @@ router.get('/qr/:qrCode/eventos', getEventosDisponiblesByQR);
 
 // Rutas protegidas
 router.get('/mis-vendedores', authMiddleware, getMisVendedores);  // Nueva ruta para mis vendedores (OWNER/LIDER)
+router.get('/detalle/:vendedorId', authMiddleware, getVendedorCompleto);  // Detalle completo de un vendedor
+router.get('/productora/:productoraId', authMiddleware, getVendedoresProductora);
 router.get('/', authMiddleware, getAllVendedores);  // Todos los vendedores
 router.post('/profile/:profileId/generar-qr', authMiddleware, generarQRVendedor);
-router.get('/productora/:productoraId', authMiddleware, getVendedoresProductora);
 
 export default router;

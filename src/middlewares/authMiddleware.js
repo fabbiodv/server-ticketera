@@ -232,17 +232,23 @@ export const requireProductoraAccess = () => {
 };
 
 export const authMiddleware = (req, res, next) => {
-  const token = req.header("Authorization");
-
-  if (!token) {
-    return res.status(401).json({ error: "Acceso denegado, no hay token" });
-  }
-
   try {
+    const authHeader = req.headers['authorization'];
+    let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    if (!token) {
+      token = req.cookies?.access_token;
+    }
+
+    if (!token) {
+      return res.status(401).json({ error: "Acceso denegado, no hay token" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Guardamos los datos del usuario en `req.user`
     next();
   } catch (error) {
+    console.error('Error en authMiddleware:', error);
     res.status(401).json({ error: "Token no válido" });
   }
 };

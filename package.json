@@ -13,6 +13,8 @@
     "start": "node --env-file .env.prod src/app.js",
     "seed": "node --env-file .env prisma/seed.js",
     "db:seed": "npm run seed",
+    "tokens": "node --env-file .env prisma/generate-token.js",
+    "generate-tokens": "node --env-file .env prisma/generate-token.js",
     "routes": "node src/utils/listRoutes.js",
     "list-routes": "node src/utils/listRoutes.js"
   },

@@ -461,3 +461,301 @@ export const generatePaymentLinkByVendedorQR = async (req, res) => {
     return res.status(500).json({ error: 'Error al generar el link de pago' });
   }
 };
+
+// Obtener vendedor completo con todas sus relaciones
+export const getVendedorCompleto = async (req, res) => {
+  try {
+    const { vendedorId } = req.params;
+    const userId = req.user.userId;
+
+    let vendedor = await prisma.profile.findUnique({
+      where: { id: parseInt(vendedorId) },
+      include: {
+        user: {
+          select: { 
+            id: true, 
+            name: true, 
+            lastName: true,
+            email: true, 
+            phone: true,
+            dni: true,
+            status: true,
+            createdAt: true,
+            lastLogin: true
+          }
+        },
+        roles: true,
+        productora: {
+          select: { 
+            id: true, 
+            name: true, 
+            code: true,
+            description: true,
+            email: true,
+            phone: true
+          }
+        },
+        entradasVendidas: {
+          include: {
+            tipoEntrada: {
+              include: {
+                evento: {
+                  select: { 
+                    id: true,
+                    name: true, 
+                    date: true,
+                    location: true,
+                    status: true
+                  }
+                }
+              }
+            },
+            buyer: {
+              select: { 
+                id: true,
+                name: true, 
+                email: true 
+              }
+            },
+            payments: {
+              select: {
+                id: true,
+                amount: true,
+                status: true,
+                createdAt: true,
+                mpPaymentId: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!vendedor) {
+      vendedor = await prisma.profile.findFirst({
+        where: { 
+          userId: parseInt(vendedorId),
+          roles: {
+            some: {
+              role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER', 'OWNER'] }
+            }
+          }
+        },
+        include: {
+          user: {
+            select: { 
+              id: true, 
+              name: true, 
+              lastName: true,
+              email: true, 
+              phone: true,
+              dni: true,
+              status: true,
+              createdAt: true,
+              lastLogin: true
+            }
+          },
+          roles: true,
+          productora: {
+            select: { 
+              id: true, 
+              name: true, 
+              code: true,
+              description: true,
+              email: true,
+              phone: true
+            }
+          },
+          entradasVendidas: {
+            include: {
+              tipoEntrada: {
+                include: {
+                  evento: {
+                    select: { 
+                      id: true,
+                      name: true, 
+                      date: true,
+                      location: true,
+                      status: true
+                    }
+                  }
+                }
+              },
+              buyer: {
+                select: { 
+                  id: true,
+                  name: true, 
+                  email: true 
+                }
+              },
+              payments: {
+                select: {
+                  id: true,
+                  amount: true,
+                  status: true,
+                  createdAt: true,
+                  mpPaymentId: true
+                }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      });
+    }
+
+    if (!vendedor) {
+      return res.status(404).json({ error: 'Vendedor no encontrado' });
+    }
+
+    const isOwn = vendedor.userId === userId;
+    
+    const hasPermission = await prisma.profile.findFirst({
+      where: {
+        userId: userId,
+        productoraId: vendedor.productoraId,
+        roles: {
+          some: {
+            role: { in: ['OWNER', 'LIDER'] }
+          }
+        }
+      }
+    });
+
+    if (!isOwn && !hasPermission) {
+      return res.status(403).json({ 
+        error: 'No tienes permisos para ver el detalle de este vendedor' 
+      });
+    }
+
+    let vendedoresSubordinados = [];
+    const roles = vendedor.roles.map(r => r.role);
+
+    if (roles.includes('LIDER')) {
+      vendedoresSubordinados = await prisma.profile.findMany({
+        where: {
+          productoraId: vendedor.productoraId,
+          id: { not: vendedor.id }, 
+          roles: {
+            some: {
+              role: { in: ['PUBLICA', 'SUBPUBLICA'] }
+            }
+          }
+        },
+        include: {
+          user: {
+            select: { 
+              id: true, 
+              name: true, 
+              lastName: true,
+              email: true,
+              status: true
+            }
+          },
+          roles: true,
+          entradasVendidas: {
+            select: { id: true },
+            where: {
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+              }
+            }
+          }
+        }
+      });
+    } else if (roles.includes('PUBLICA')) {
+      vendedoresSubordinados = await prisma.profile.findMany({
+        where: {
+          productoraId: vendedor.productoraId,
+          roles: {
+            some: {
+              role: 'SUBPUBLICA',
+              assignedBy: vendedor.id 
+            }
+          }
+        },
+        include: {
+          user: {
+            select: { 
+              id: true, 
+              name: true, 
+              lastName: true,
+              email: true,
+              status: true
+            }
+          },
+          roles: true,
+          entradasVendidas: {
+            select: { id: true },
+            where: {
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const ventasStats = {
+      totalVentas: vendedor.entradasVendidas.length,
+      ventasEsteMes: vendedor.entradasVendidas.filter(entrada => {
+        const fechaVenta = new Date(entrada.createdAt);
+        const ahora = new Date();
+        return fechaVenta.getMonth() === ahora.getMonth() && 
+               fechaVenta.getFullYear() === ahora.getFullYear();
+      }).length,
+      montoTotal: vendedor.entradasVendidas.reduce((sum, entrada) => {
+        const pagoAprobado = entrada.payments.find(p => p.status === 'APPROVED');
+        return sum + (pagoAprobado ? pagoAprobado.amount : 0);
+      }, 0),
+      montoEsteMes: vendedor.entradasVendidas
+        .filter(entrada => {
+          const fechaVenta = new Date(entrada.createdAt);
+          const ahora = new Date();
+          return fechaVenta.getMonth() === ahora.getMonth() && 
+                 fechaVenta.getFullYear() === ahora.getFullYear();
+        })
+        .reduce((sum, entrada) => {
+          const pagoAprobado = entrada.payments.find(p => p.status === 'APPROVED');
+          return sum + (pagoAprobado ? pagoAprobado.amount : 0);
+        }, 0)
+    };
+
+    const subordinadosStats = vendedoresSubordinados.map(sub => ({
+      id: sub.id,
+      user: sub.user,
+      roles: sub.roles.map(r => r.role),
+      ventasEsteMes: sub.entradasVendidas.length
+    }));
+
+    res.json({
+      vendedor: {
+        id: vendedor.id,
+        user: vendedor.user,
+        roles: vendedor.roles,
+        productora: vendedor.productora,
+        qrCode: vendedor.qrCode,
+        createdAt: vendedor.createdAt,
+        updatedAt: vendedor.updatedAt
+      },
+      estadisticas: ventasStats,
+      entradasVendidas: vendedor.entradasVendidas.slice(0, 10), // Últimas 10 ventas
+      vendedoresSubordinados: subordinadosStats,
+      resumen: {
+        esLider: roles.includes('LIDER'),
+        esPublica: roles.includes('PUBLICA'),
+        esSubpublica: roles.includes('SUBPUBLICA'),
+        esOwner: roles.includes('OWNER'),
+        tieneQR: !!vendedor.qrCode,
+        cantidadSubordinados: vendedoresSubordinados.length,
+        productoraNombre: vendedor.productora.name
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error al obtener vendedor completo:', error);
+    res.status(500).json({ error: 'Error al obtener información del vendedor: ' + error.message });
+  }
+};
