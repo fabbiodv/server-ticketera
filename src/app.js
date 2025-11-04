@@ -43,6 +43,7 @@ app.use(
       "X-Requested-With",
       "Accept",
     ],
+    exposedHeaders: ["Set-Cookie"],
   }),
 );
 
