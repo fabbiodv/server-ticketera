@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import prisma from "./config/database.js";
 import productoraRoutes from "./routes/productora.routes.js";
 import userRoutes from "./routes/user.routes.js";
@@ -48,6 +49,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/health", (req, res) => {
   res.status(200).json({ message: "ok" });

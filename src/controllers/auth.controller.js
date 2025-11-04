@@ -445,18 +445,15 @@ export const loginWithPassword = async (req, res) => {
     })
 
     // configurar cookies
+    const cookieConfig = getCookieConfig()
+
     res.cookie('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      domain: process.env.NODE_ENV === 'production' ? 'canchita.vercel.app' : 'localhost',
+      ...cookieConfig,
       maxAge: 15 * 60 * 1000 // 15 minutos
     })
 
     res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...cookieConfig,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
     })
 
