@@ -30,7 +30,7 @@ const port = process.env.PORT || 3001;
 app.use(
   cors({
     origin: [
-      "https://admin-ticketera.vercel.app",
+      "https://admin-ticketera.fabbiodv.com",
       "http://localhost:3001", // Para desarrollo local del admin
       "http://localhost:3002", // Para desarrollo local del admin
       "http://localhost:3000", // Para desarrollo local del frontend público
