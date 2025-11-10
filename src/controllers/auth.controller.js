@@ -72,7 +72,7 @@ export const verify = async (req, res) => {
       return res.redirect(`${process.env.LOCAL_FRONTEND_URL}/login?error=invalid_token`)
     }
 
-    // Genera el access token (corta duración)
+    // Genera el access token 
     const accessToken = jwt.sign(
       {
         userId: user.id,
@@ -80,15 +80,15 @@ export const verify = async (req, res) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: '15m'
+        expiresIn: '7d'
       }
     )
 
-    // Genera el refresh token (larga duración)
+    // Genera el refresh token 
     const refreshToken = jwt.sign(
       { userId: user.id },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '15m' }
     )
 
     // Crear nueva sesión
@@ -328,13 +328,13 @@ export const register = async (req, res) => {
         email: user.email
       },
       process.env.JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '7d' }
     )
 
     const refreshToken = jwt.sign(
       { userId: user.id },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '15m' }
     )
 
     // Crear sesión
@@ -411,20 +411,20 @@ export const loginWithPassword = async (req, res) => {
       data: { lastLogin: new Date() }
     })
 
-    // Generar tokens (igual que en el método de verify existente)
+    // Generar tokens 
     const accessToken = jwt.sign(
       {
         userId: user.id,
         role: user.role
       },
       process.env.JWT_SECRET,
-      { expiresIn: '50m' }
+      { expiresIn: '7d' }
     )
 
     const refreshToken = jwt.sign(
       { userId: user.id },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '15m' }
     )
 
     // Crear sesión
@@ -444,12 +444,13 @@ export const loginWithPassword = async (req, res) => {
 
     res.cookie('access_token', accessToken, {
       ...cookieConfig,
-      maxAge: 15 * 60 * 1000 // 15 minutos
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
     })
 
     res.cookie('refresh_token', refreshToken, {
       ...cookieConfig,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+      maxAge: 15 * 60 * 1000 // 15 minutos
+
     })
 
     // Enviar respuesta con tokens
