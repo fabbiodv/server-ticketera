@@ -472,16 +472,41 @@ export const getVendedorCompleto = async (req, res) => {
       where: { id: parseInt(vendedorId) },
       include: {
         user: {
-          select: { 
-            id: true, 
-            name: true, 
-            lastName: true,
-            email: true, 
-            phone: true,
-            dni: true,
-            status: true,
-            createdAt: true,
-            lastLogin: true
+          include: {
+            entradasVendidas: {
+              include: {
+                tipoEntrada: {
+                  include: {
+                    evento: {
+                      select: { 
+                        id: true,
+                        name: true, 
+                        date: true,
+                        location: true,
+                        status: true
+                      }
+                    }
+                  }
+                },
+                buyer: {
+                  select: { 
+                    id: true,
+                    name: true, 
+                    email: true 
+                  }
+                },
+                payment: {
+                  select: {
+                    id: true,
+                    amount: true,
+                    status: true,
+                    createdAt: true,
+                    mpPaymentId: true
+                  }
+                }
+              },
+              orderBy: { createdAt: 'desc' }
+            }
           }
         },
         roles: true,
@@ -490,44 +515,8 @@ export const getVendedorCompleto = async (req, res) => {
             id: true, 
             name: true, 
             code: true,
-            description: true,
             email: true,
-            phone: true
           }
-        },
-        entradasVendidas: {
-          include: {
-            tipoEntrada: {
-              include: {
-                evento: {
-                  select: { 
-                    id: true,
-                    name: true, 
-                    date: true,
-                    location: true,
-                    status: true
-                  }
-                }
-              }
-            },
-            buyer: {
-              select: { 
-                id: true,
-                name: true, 
-                email: true 
-              }
-            },
-            payments: {
-              select: {
-                id: true,
-                amount: true,
-                status: true,
-                createdAt: true,
-                mpPaymentId: true
-              }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
         }
       }
     });
@@ -544,16 +533,41 @@ export const getVendedorCompleto = async (req, res) => {
         },
         include: {
           user: {
-            select: { 
-              id: true, 
-              name: true, 
-              lastName: true,
-              email: true, 
-              phone: true,
-              dni: true,
-              status: true,
-              createdAt: true,
-              lastLogin: true
+            include: {
+              entradasVendidas: {
+                include: {
+                  tipoEntrada: {
+                    include: {
+                      evento: {
+                        select: { 
+                          id: true,
+                          name: true, 
+                          date: true,
+                          location: true,
+                          status: true
+                        }
+                      }
+                    }
+                  },
+                  buyer: {
+                    select: { 
+                      id: true,
+                      name: true, 
+                      email: true 
+                    }
+                  },
+                  payment: {
+                    select: {
+                      id: true,
+                      amount: true,
+                      status: true,
+                      createdAt: true,
+                      mpPaymentId: true
+                    }
+                  }
+                },
+                orderBy: { createdAt: 'desc' }
+              }
             }
           },
           roles: true,
@@ -562,44 +576,8 @@ export const getVendedorCompleto = async (req, res) => {
               id: true, 
               name: true, 
               code: true,
-              description: true,
               email: true,
-              phone: true
             }
-          },
-          entradasVendidas: {
-            include: {
-              tipoEntrada: {
-                include: {
-                  evento: {
-                    select: { 
-                      id: true,
-                      name: true, 
-                      date: true,
-                      location: true,
-                      status: true
-                    }
-                  }
-                }
-              },
-              buyer: {
-                select: { 
-                  id: true,
-                  name: true, 
-                  email: true 
-                }
-              },
-              payments: {
-                select: {
-                  id: true,
-                  amount: true,
-                  status: true,
-                  createdAt: true,
-                  mpPaymentId: true
-                }
-              }
-            },
-            orderBy: { createdAt: 'desc' }
           }
         }
       });
@@ -645,72 +623,62 @@ export const getVendedorCompleto = async (req, res) => {
         },
         include: {
           user: {
-            select: { 
-              id: true, 
-              name: true, 
-              lastName: true,
-              email: true,
-              status: true
-            }
-          },
-          roles: true,
-          entradasVendidas: {
-            select: { id: true },
-            where: {
-              createdAt: {
-                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+            include: {
+              entradasVendidas: {
+                select: { id: true },
+                where: {
+                  createdAt: {
+                    gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+                  }
+                }
               }
             }
-          }
+          },
+          roles: true
         }
       });
     } else if (roles.includes('PUBLICA')) {
       vendedoresSubordinados = await prisma.profile.findMany({
         where: {
           productoraId: vendedor.productoraId,
+          id: { not: vendedor.id },
           roles: {
             some: {
-              role: 'SUBPUBLICA',
-              assignedBy: vendedor.id 
+              role: 'SUBPUBLICA'
             }
           }
         },
         include: {
           user: {
-            select: { 
-              id: true, 
-              name: true, 
-              lastName: true,
-              email: true,
-              status: true
-            }
-          },
-          roles: true,
-          entradasVendidas: {
-            select: { id: true },
-            where: {
-              createdAt: {
-                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+            include: {
+              entradasVendidas: {
+                select: { id: true },
+                where: {
+                  createdAt: {
+                    gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) // Este mes
+                  }
+                }
               }
             }
-          }
+          },
+          roles: true
         }
       });
     }
 
     const ventasStats = {
-      totalVentas: vendedor.entradasVendidas.length,
-      ventasEsteMes: vendedor.entradasVendidas.filter(entrada => {
+      totalVentas: vendedor.user.entradasVendidas.length,
+      ventasEsteMes: vendedor.user.entradasVendidas.filter(entrada => {
         const fechaVenta = new Date(entrada.createdAt);
         const ahora = new Date();
         return fechaVenta.getMonth() === ahora.getMonth() && 
                fechaVenta.getFullYear() === ahora.getFullYear();
       }).length,
-      montoTotal: vendedor.entradasVendidas.reduce((sum, entrada) => {
-        const pagoAprobado = entrada.payments.find(p => p.status === 'APPROVED');
-        return sum + (pagoAprobado ? pagoAprobado.amount : 0);
+      montoTotal: vendedor.user.entradasVendidas.reduce((sum, entrada) => {
+        const pagoAprobado = entrada.payment && entrada.payment.status === 'APPROVED';
+        return sum + (pagoAprobado ? entrada.payment.amount : 0);
       }, 0),
-      montoEsteMes: vendedor.entradasVendidas
+      montoEsteMes: vendedor.user.entradasVendidas
         .filter(entrada => {
           const fechaVenta = new Date(entrada.createdAt);
           const ahora = new Date();
@@ -718,8 +686,8 @@ export const getVendedorCompleto = async (req, res) => {
                  fechaVenta.getFullYear() === ahora.getFullYear();
         })
         .reduce((sum, entrada) => {
-          const pagoAprobado = entrada.payments.find(p => p.status === 'APPROVED');
-          return sum + (pagoAprobado ? pagoAprobado.amount : 0);
+          const pagoAprobado = entrada.payment && entrada.payment.status === 'APPROVED';
+          return sum + (pagoAprobado ? entrada.payment.amount : 0);
         }, 0)
     };
 
@@ -727,7 +695,7 @@ export const getVendedorCompleto = async (req, res) => {
       id: sub.id,
       user: sub.user,
       roles: sub.roles.map(r => r.role),
-      ventasEsteMes: sub.entradasVendidas.length
+      ventasEsteMes: sub.user.entradasVendidas.length
     }));
 
     res.json({
@@ -741,7 +709,7 @@ export const getVendedorCompleto = async (req, res) => {
         updatedAt: vendedor.updatedAt
       },
       estadisticas: ventasStats,
-      entradasVendidas: vendedor.entradasVendidas.slice(0, 10), // Últimas 10 ventas
+      entradasVendidas: vendedor.user.entradasVendidas.slice(0, 10), // Últimas 10 ventas
       vendedoresSubordinados: subordinadosStats,
       resumen: {
         esLider: roles.includes('LIDER'),
@@ -757,5 +725,310 @@ export const getVendedorCompleto = async (req, res) => {
   } catch (error) {
     console.error('Error al obtener vendedor completo:', error);
     res.status(500).json({ error: 'Error al obtener información del vendedor: ' + error.message });
+  }
+};
+
+
+// Helper functions
+const findVendedorByIdModular = async (vendedorId) => {
+  let vendedor = await prisma.profile.findUnique({
+    where: { id: parseInt(vendedorId) },
+    include: {
+      user: {
+        include: {
+          entradasVendidas: {
+            include: {
+              tipoEntrada: {
+                include: {
+                  evento: {
+                    select: { 
+                      id: true,
+                      name: true, 
+                      date: true,
+                      location: true,
+                      status: true
+                    }
+                  }
+                }
+              },
+              buyer: {
+                select: { 
+                  id: true,
+                  name: true, 
+                  email: true 
+                }
+              },
+              payment: {
+                select: {
+                  id: true,
+                  amount: true,
+                  status: true,
+                  createdAt: true,
+                  mpPaymentId: true
+                }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          }
+        }
+      },
+      roles: true,
+      productora: {
+        select: { 
+          id: true, 
+          name: true, 
+          code: true,
+          email: true,
+        }
+      }
+    }
+  });
+
+  // Si no se encontró por profileId, buscar por userId
+  if (!vendedor) {
+    vendedor = await prisma.profile.findFirst({
+      where: { 
+        userId: parseInt(vendedorId),
+        roles: {
+          some: {
+            role: { in: ['PUBLICA', 'SUBPUBLICA', 'LIDER', 'OWNER'] }
+          }
+        }
+      },
+      include: {
+        roles: true,
+        productora: {
+          select: { 
+            id: true, 
+            name: true, 
+            code: true,
+            email: true,
+          }
+        },
+        user: {
+          include: {
+            entradasVendidas: {
+              include: {
+                tipoEntrada: {
+                  include: {
+                    evento: {
+                      select: { 
+                        id: true,
+                        name: true, 
+                        date: true,
+                        location: true,
+                        status: true
+                      }
+                    }
+                  }
+                },
+                buyer: {
+                  select: { 
+                    id: true,
+                    name: true, 
+                    email: true 
+                  }
+                },
+                payment: {
+                  select: {
+                    id: true,
+                    amount: true,
+                    status: true,
+                    createdAt: true,
+                    mpPaymentId: true
+                  }
+                }
+              },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  return vendedor;
+};
+
+const checkVendedorPermissionsModular = async (vendedor, userId) => {
+  const isOwn = vendedor.userId === userId;
+  
+  if (isOwn) return true;
+  
+  const hasPermission = await prisma.profile.findFirst({
+    where: {
+      userId: userId,
+      productoraId: vendedor.productoraId,
+      roles: {
+        some: {
+          role: { in: ['OWNER', 'LIDER'] }
+        }
+      }
+    }
+  });
+  
+  return !!hasPermission;
+};
+
+const getVendedoresSubordinadosModular = async (vendedor) => {
+  let vendedoresSubordinados = [];
+  const roles = vendedor.roles.map(r => r.role);
+
+  if (roles.includes('LIDER')) {
+    // Si es LIDER, puede ver PUBLICA y SUBPUBLICA de su productora
+    vendedoresSubordinados = await prisma.profile.findMany({
+      where: {
+        productoraId: vendedor.productoraId,
+        id: { not: vendedor.id }, 
+        roles: {
+          some: {
+            role: { in: ['PUBLICA', 'SUBPUBLICA'] }
+          }
+        }
+      },
+      include: {
+        user: {
+          include: {
+            entradasVendidas: {
+              select: { id: true },
+              where: {
+                createdAt: {
+                  gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                }
+              }
+            }
+          }
+        },
+        roles: true
+      }
+    });
+  } else if (roles.includes('PUBLICA')) {
+    // Si es PUBLICA, puede ver sus SUBPUBLICA (por ahora solo de la misma productora)
+    // TODO: Implementar relación assignedBy cuando se agregue al esquema
+    vendedoresSubordinados = await prisma.profile.findMany({
+      where: {
+        productoraId: vendedor.productoraId,
+        id: { not: vendedor.id },
+        roles: {
+          some: {
+            role: 'SUBPUBLICA'
+          }
+        }
+      },
+      include: {
+        user: {
+          include: {
+            entradasVendidas: {
+              select: { id: true },
+              where: {
+                createdAt: {
+                  gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                }
+              }
+            }
+          }
+        },
+        roles: true
+      }
+    });
+  }
+  
+  return vendedoresSubordinados;
+};
+
+const calculateVentasStatsModular = (entradasVendidas) => {
+  return {
+    totalVentas: entradasVendidas.length,
+    ventasEsteMes: entradasVendidas.filter(entrada => {
+      const fechaVenta = new Date(entrada.createdAt);
+      const ahora = new Date();
+      return fechaVenta.getMonth() === ahora.getMonth() && 
+             fechaVenta.getFullYear() === ahora.getFullYear();
+    }).length,
+    montoTotal: entradasVendidas.reduce((sum, entrada) => {
+      const pagoAprobado = entrada.payment && entrada.payment.status === 'APPROVED';
+      return sum + (pagoAprobado ? entrada.payment.amount : 0);
+    }, 0),
+    montoEsteMes: entradasVendidas
+      .filter(entrada => {
+        const fechaVenta = new Date(entrada.createdAt);
+        const ahora = new Date();
+        return fechaVenta.getMonth() === ahora.getMonth() && 
+               fechaVenta.getFullYear() === ahora.getFullYear();
+      })
+      .reduce((sum, entrada) => {
+        const pagoAprobado = entrada.payment && entrada.payment.status === 'APPROVED';
+        return sum + (pagoAprobado ? entrada.payment.amount : 0);
+      }, 0)
+  };
+};
+
+const getSubordinadosStatsModular = (vendedoresSubordinados) => {
+  return vendedoresSubordinados.map(sub => ({
+    id: sub.id,
+    user: sub.user,
+    roles: sub.roles.map(r => r.role),
+    ventasEsteMes: sub.user.entradasVendidas.length
+  }));
+};
+
+export const getVendedorCompletoModular = async (req, res) => {
+  try {
+    const { vendedorId } = req.params;
+    const userId = req.user.userId;
+
+    // Buscar vendedor
+    const vendedor = await findVendedorByIdModular(vendedorId);
+    if (!vendedor) {
+      return res.status(404).json({ error: 'Vendedor no encontrado' });
+    }
+
+    // Verificar permisos
+    const hasPermission = await checkVendedorPermissionsModular(vendedor, userId);
+    if (!hasPermission) {
+      return res.status(403).json({ 
+        error: 'No tienes permisos para ver el detalle de este vendedor' 
+      });
+    }
+
+    // Obtener vendedores subordinados
+    const vendedoresSubordinados = await getVendedoresSubordinadosModular(vendedor);
+    
+    // Calcular estadísticas
+    const ventasStats = calculateVentasStatsModular(vendedor.user.entradasVendidas);
+    const subordinadosStats = getSubordinadosStatsModular(vendedoresSubordinados);
+    
+    // Preparar respuesta
+    const roles = vendedor.roles.map(r => r.role);
+    
+    res.json({
+      vendedor: {
+        id: vendedor.id,
+        user: vendedor.user,
+        roles: vendedor.roles,
+        productora: vendedor.productora,
+        qrCode: vendedor.qrCode,
+        createdAt: vendedor.createdAt,
+        updatedAt: vendedor.updatedAt
+      },
+      estadisticas: ventasStats,
+      entradasVendidas: vendedor.user.entradasVendidas.slice(0, 10), // Últimas 10 ventas
+      vendedoresSubordinados: subordinadosStats,
+      resumen: {
+        esLider: roles.includes('LIDER'),
+        esPublica: roles.includes('PUBLICA'),
+        esSubpublica: roles.includes('SUBPUBLICA'),
+        esOwner: roles.includes('OWNER'),
+        tieneQR: !!vendedor.qrCode,
+        cantidadSubordinados: vendedoresSubordinados.length,
+        productoraNombre: vendedor.productora.name
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error al obtener vendedor completo:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener información del vendedor: ' + error.message 
+    });
   }
 };
