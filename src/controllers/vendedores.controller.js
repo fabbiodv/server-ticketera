@@ -71,8 +71,16 @@ export const getMisVendedores = async (req, res) => {
     const {
       page, limit, sortBy = 'createdAt', sortOrder = 'desc',
       name, email, hasQR, role, productoraId,
+      include, // Parámetro para incluir datos adicionales
       ...otherFilters
     } = req.query;
+
+    // Parsear includes
+    const includes = include ? include.split(',').map(i => i.trim()) : [];
+    const includePhone = includes.includes('phone');
+    const includeTotalSales = includes.includes('totalSales');
+    const includeSalesCount = includes.includes('salesCount');
+    const includeSubVendors = includes.includes('subVendors');
 
     const misProductoras = await prisma.profile.findMany({
       where: {
@@ -122,18 +130,40 @@ export const getMisVendedores = async (req, res) => {
       )
     };
 
+    // Construir la consulta base
+    const baseInclude = {
+      user: {
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          status: true,
+          ...(includePhone && { phone: true })
+        }
+      },
+      roles: true,
+      productora: {
+        select: { id: true, name: true, code: true }
+      }
+    };
+
+    // Agregar ventas si se solicitan
+    if (includeTotalSales || includeSalesCount) {
+      baseInclude.user.include = {
+        entradasVendidas: {
+          include: {
+            payment: {
+              select: { amount: true, status: true }
+            }
+          }
+        }
+      };
+    }
+
     // Obtener vendedores de mis productoras
     const vendedores = await prisma.profile.findMany({
       where: whereClause,
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, status: true }
-        },
-        roles: true,
-        productora: {
-          select: { id: true, name: true, code: true }
-        }
-      },
+      include: baseInclude,
       orderBy: { [sortBy]: sortOrder },
       ...(limit && {
         skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
@@ -146,8 +176,91 @@ export const getMisVendedores = async (req, res) => {
       where: whereClause
     });
 
+    // Procesar datos adicionales si se solicitan
+    const vendedoresProcessed = await Promise.all(
+      vendedores.map(async (vendedor) => {
+        const vendedorData = { ...vendedor };
+
+        // Agregar datos de ventas si se solicitan
+        if (includeTotalSales || includeSalesCount) {
+          const ventas = vendedor.user.entradasVendidas || [];
+          
+          if (includeSalesCount) {
+            vendedorData.salesCount = ventas.length;
+          }
+
+          if (includeTotalSales) {
+            vendedorData.totalSales = ventas.reduce((total, entrada) => {
+              if (entrada.payment && entrada.payment.status === 'SUCCESS') {
+                return total + entrada.payment.amount;
+              }
+              return total;
+            }, 0);
+          }
+
+          // Limpiar datos innecesarios si no se necesitan en el output
+          if (vendedorData.user.entradasVendidas) {
+            delete vendedorData.user.entradasVendidas;
+          }
+        }
+
+        // Agregar subvendedores si se solicitan
+        if (includeSubVendors) {
+          const roles = vendedor.roles.map(r => r.role);
+          
+          if (roles.includes('LIDER')) {
+            // Si es LIDER, obtener PUBLICA y SUBPUBLICA de su productora
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: { in: ['PUBLICA', 'SUBPUBLICA'] }
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else if (roles.includes('PUBLICA')) {
+            // Si es PUBLICA, obtener SUBPUBLICA relacionadas
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: 'SUBPUBLICA'
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else {
+            vendedorData.subVendors = [];
+          }
+        }
+
+        return vendedorData;
+      })
+    );
+
     res.json({
-      vendedores,
+      vendedores: vendedoresProcessed,
       misProductoras: productoraIds,
       pagination: {
         total,
@@ -166,8 +279,46 @@ export const getAllVendedores = async (req, res) => {
     const {
       page, limit, sortBy = 'createdAt', sortOrder = 'desc',
       name, email, hasQR, role, productoraId,
+      include, // Parámetro para incluir datos adicionales
       ...otherFilters
     } = req.query;
+
+    // Parsear includes
+    const includes = include ? include.split(',').map(i => i.trim()) : [];
+    const includePhone = includes.includes('phone');
+    const includeTotalSales = includes.includes('totalSales');
+    const includeSalesCount = includes.includes('salesCount');
+    const includeSubVendors = includes.includes('subVendors');
+
+    // Construir la consulta base
+    const baseInclude = {
+      user: {
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          status: true,
+          ...(includePhone && { phone: true })
+        }
+      },
+      roles: true,
+      productora: {
+        select: { id: true, name: true, code: true }
+      }
+    };
+
+    // Agregar ventas si se solicitan
+    if (includeTotalSales || includeSalesCount) {
+      baseInclude.user.include = {
+        entradasVendidas: {
+          include: {
+            payment: {
+              select: { amount: true, status: true }
+            }
+          }
+        }
+      };
+    }
 
     const vendedores = await prisma.profile.findMany({
       where: {
@@ -196,21 +347,96 @@ export const getAllVendedores = async (req, res) => {
             .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
         )
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, status: true }
-        },
-        roles: true,
-        productora: {
-          select: { id: true, name: true, code: true }
-        }
-      },
+      include: baseInclude,
       orderBy: { [sortBy]: sortOrder },
       ...(limit && {
         skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
         take: parseInt(limit)
       })
     });
+
+    // Procesar datos adicionales si se solicitan
+    const vendedoresProcessed = await Promise.all(
+      vendedores.map(async (vendedor) => {
+        const vendedorData = { ...vendedor };
+
+        // Agregar datos de ventas si se solicitan
+        if (includeTotalSales || includeSalesCount) {
+          const ventas = vendedor.user.entradasVendidas || [];
+          
+          if (includeSalesCount) {
+            vendedorData.salesCount = ventas.length;
+          }
+
+          if (includeTotalSales) {
+            vendedorData.totalSales = ventas.reduce((total, entrada) => {
+              if (entrada.payment && entrada.payment.status === 'SUCCESS') {
+                return total + entrada.payment.amount;
+              }
+              return total;
+            }, 0);
+          }
+
+          // Limpiar datos innecesarios si no se necesitan en el output
+          if (vendedorData.user.entradasVendidas) {
+            delete vendedorData.user.entradasVendidas;
+          }
+        }
+
+        // Agregar subvendedores si se solicitan
+        if (includeSubVendors) {
+          const roles = vendedor.roles.map(r => r.role);
+          
+          if (roles.includes('LIDER')) {
+            // Si es LIDER, obtener PUBLICA y SUBPUBLICA de su productora
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: { in: ['PUBLICA', 'SUBPUBLICA'] }
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else if (roles.includes('PUBLICA')) {
+            // Si es PUBLICA, obtener SUBPUBLICA relacionadas
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: 'SUBPUBLICA'
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else {
+            vendedorData.subVendors = [];
+          }
+        }
+
+        return vendedorData;
+      })
+    );
 
     // Contar total para paginación
     const total = await prisma.profile.count({
@@ -236,7 +462,7 @@ export const getAllVendedores = async (req, res) => {
     });
 
     res.json({
-      vendedores,
+      vendedores: vendedoresProcessed,
       pagination: {
         total,
         page: parseInt(page) || 1,
@@ -255,8 +481,46 @@ export const getVendedoresProductora = async (req, res) => {
     const {
       page, limit, sortBy = 'createdAt', sortOrder = 'desc',
       name, email, hasQR, role,
+      include, // Parámetro para incluir datos adicionales
       ...otherFilters
     } = req.query;
+
+    // Parsear includes
+    const includes = include ? include.split(',').map(i => i.trim()) : [];
+    const includePhone = includes.includes('phone');
+    const includeTotalSales = includes.includes('totalSales');
+    const includeSalesCount = includes.includes('salesCount');
+    const includeSubVendors = includes.includes('subVendors');
+
+    // Construir la consulta base
+    const baseInclude = {
+      user: {
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          status: true,
+          ...(includePhone && { phone: true })
+        }
+      },
+      roles: true,
+      productora: {
+        select: { name: true, code: true }
+      }
+    };
+
+    // Agregar ventas si se solicitan
+    if (includeTotalSales || includeSalesCount) {
+      baseInclude.user.include = {
+        entradasVendidas: {
+          include: {
+            payment: {
+              select: { amount: true, status: true }
+            }
+          }
+        }
+      };
+    }
 
     const vendedores = await prisma.profile.findMany({
       where: {
@@ -285,15 +549,7 @@ export const getVendedoresProductora = async (req, res) => {
             .map(([key, value]) => [key, { contains: value, mode: 'insensitive' }])
         )
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true, status: true }
-        },
-        roles: true,
-        productora: {
-          select: { name: true, code: true }
-        }
-      },
+      include: baseInclude,
       orderBy: { [sortBy]: sortOrder },
       ...(limit && {
         skip: ((parseInt(page) || 1) - 1) * parseInt(limit),
@@ -301,7 +557,90 @@ export const getVendedoresProductora = async (req, res) => {
       })
     });
 
-    res.json(vendedores);
+    // Procesar datos adicionales si se solicitan
+    const vendedoresProcessed = await Promise.all(
+      vendedores.map(async (vendedor) => {
+        const vendedorData = { ...vendedor };
+
+        // Agregar datos de ventas si se solicitan
+        if (includeTotalSales || includeSalesCount) {
+          const ventas = vendedor.user.entradasVendidas || [];
+          
+          if (includeSalesCount) {
+            vendedorData.salesCount = ventas.length;
+          }
+
+          if (includeTotalSales) {
+            vendedorData.totalSales = ventas.reduce((total, entrada) => {
+              if (entrada.payment && entrada.payment.status === 'SUCCESS') {
+                return total + entrada.payment.amount;
+              }
+              return total;
+            }, 0);
+          }
+
+          // Limpiar datos innecesarios si no se necesitan en el output
+          if (vendedorData.user.entradasVendidas) {
+            delete vendedorData.user.entradasVendidas;
+          }
+        }
+
+        // Agregar subvendedores si se solicitan
+        if (includeSubVendors) {
+          const roles = vendedor.roles.map(r => r.role);
+          
+          if (roles.includes('LIDER')) {
+            // Si es LIDER, obtener PUBLICA y SUBPUBLICA de su productora
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: { in: ['PUBLICA', 'SUBPUBLICA'] }
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else if (roles.includes('PUBLICA')) {
+            // Si es PUBLICA, obtener SUBPUBLICA relacionadas
+            vendedorData.subVendors = await prisma.profile.findMany({
+              where: {
+                productoraId: vendedor.productoraId,
+                id: { not: vendedor.id },
+                roles: {
+                  some: {
+                    role: 'SUBPUBLICA'
+                  }
+                }
+              },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                },
+                roles: {
+                  select: { role: true }
+                }
+              }
+            });
+          } else {
+            vendedorData.subVendors = [];
+          }
+        }
+
+        return vendedorData;
+      })
+    );
+
+    res.json(vendedoresProcessed);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener vendedores: ' + error.message });
   }
