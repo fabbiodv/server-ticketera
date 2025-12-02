@@ -125,7 +125,7 @@ export const getEstadisticasProductora = async (req, res) => {
         id: true,
         name: true,
         date: true,
-        entradas: {
+        Entrada: {
           where: {
             payment: {
               status: 'SUCCESS'
@@ -144,8 +144,8 @@ export const getEstadisticasProductora = async (req, res) => {
       eventoId: evento.id,
       eventoNombre: evento.name,
       fecha: evento.date,
-      entradasVendidas: evento.entradas.length,
-      montoTotal: evento.entradas.reduce((sum, entrada) => 
+      entradasVendidas: evento.Entrada.length,
+      montoTotal: evento.Entrada.reduce((sum, entrada) => 
         sum + (entrada.payment?.amount || 0), 0
       )
     }));
@@ -213,7 +213,7 @@ export const getEstadisticasProductora = async (req, res) => {
             maximoEntradasPorPersona: true
           }
         },
-        entradas: {
+        Entrada: {
           where: {
             payment: {
               status: 'SUCCESS'
@@ -233,7 +233,7 @@ export const getEstadisticasProductora = async (req, res) => {
       ubicacion: evento.location,
       status: evento.status,
       tiposEntrada: evento.tipoEntrada.length,
-      entradasVendidas: evento.entradas.length,
+      entradasVendidas: evento.Entrada.length,
       ingresosPotenciales: evento.tipoEntrada.reduce((sum, tipo) => 
         sum + tipo.precio, 0
       )
