@@ -14,6 +14,7 @@ import paymentRoutes from "./routes/payment.routes.js"; // Agregar esta línea
 import checkoutRoutes from "./routes/checkout.routes.js";
 import mercadoPagoRoutes from "./routes/mercadoPago.routes.js"; // Agregar esta línea
 import vendedorRoutes from "./routes/vendedores.routes.js"; // Nueva línea
+import invitationRoutes from "./routes/invitation.routes.js"; // Nueva línea para invitaciones
 import dotenv from "dotenv";
 // Cargar variables de entorno del archivo correspondiente
 const envFile =
@@ -66,6 +67,7 @@ app.use("/payment", paymentRoutes);
 app.use("/checkout", checkoutRoutes);
 app.use("/webhooks", mercadoPagoRoutes);
 app.use("/vendedores", vendedorRoutes);
+app.use("/invitation", invitationRoutes); // Rutas para invitaciones
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

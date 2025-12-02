@@ -89,6 +89,7 @@ model User {
   entradasCompradas Entrada[] @relation("BuyerRelation")
   entradasVendidas  Entrada[] @relation("SellerRelation")
   sessions          Session[]
+  invitationsSent   Invitation[] @relation("InviterRelation")
 }
 
 model Session {
@@ -121,6 +122,7 @@ model Productora {
 
   profiles        Profile[]
   eventos         Eventos[]
+  invitations     Invitation[]
 }
 
 model Eventos {
@@ -242,4 +244,32 @@ model RoleAsignee {
   profile   Profile  @relation(fields: [profileId], references: [id])
 
   @@id([profileId, role])
+}
+
+model Invitation {
+  id            Int      @id @default(autoincrement())
+  email         String
+  role          Role
+  token         String   @unique
+  productoraId  Int
+  invitedBy     Int
+  
+  status        InvitationStatus @default(PENDING)
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  productora    Productora @relation(fields: [productoraId], references: [id])
+  inviter       User       @relation("InviterRelation", fields: [invitedBy], references: [id])
+  
+  @@unique([email, productoraId, role])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
 }
